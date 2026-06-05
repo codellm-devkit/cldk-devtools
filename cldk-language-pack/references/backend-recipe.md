@@ -10,6 +10,14 @@ symbol table first, then adds resolver-resolved call-graph edges strictly on top
 cheap level-1 analysis — and defers the heavy framework-based analysis (level 2) to an optional,
 flagged backend, only ever exposing `analysis.json` to the SDK.**
 
+**Cross-cutting: build it modular.** Every step below lands in a specific subpackage of a
+**modular package that mirrors `codeanalyzer-python`'s structure** — a delegating `core`, a
+node-kind-split symbol-table builder, an isolated framework-backend subpackage, and a real
+pluggable `analysis/` (pass + registry) + `frameworks/` (finder base) layer. Lay that skeleton
+down *before* filling these steps; a working monolith (the shape `codeanalyzer-ts` shipped) is a
+failure even when its JSON validates. The full layout, rules, and anti-patterns:
+`analyzer-architecture.md`.
+
 ## 1. Anchor in the target language's native ecosystem
 The analyzer must run where the language's best tooling lives, because that's where symbol
 and type resolution are accurate: Java → JVM (javaparser + WALA); Python → Python
@@ -90,7 +98,11 @@ Layer CodeQL or Joern (`jssrc2cpg`) edges for the dynamic/dataflow cases the pri
 checker misses, then **merge by `(source, target)`** with provenance union and weight
 accumulation — the exact jedi∪codeql merge pattern in `codeanalyzer-python`'s core. Gate it
 behind a flag so the cheap path stays cheap. This is the one step that stays a wired-but-
-optional extension point even at full depth.
+optional extension point even at full depth. **Isolate this backend in its own subpackage**
+(Python's `semantic_analysis/codeql/` splits binary resolution, DB/driver, query execution, and
+errors into separate modules; `core` talks to one class and never touches the binary) — and
+scaffold those seams *even when level 2 ships stubbed*, so the deep implementation drops in
+without a refactor. `analyzer-architecture.md` rule 3.
 
 ## 8. Add caching and incremental analysis
 Persist `analysis_cache.json`; on rerun, reuse per-file Modules whose hash/mtime/size are

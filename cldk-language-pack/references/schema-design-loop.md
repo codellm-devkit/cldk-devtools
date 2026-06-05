@@ -63,8 +63,9 @@ decision, with a recommended default first. Use this shape:
 Always include *why* each option exists and what it buys/costs, anchored in what the references
 did. When the language adds something with no reference precedent (TS generics, Go receiver
 types, Rust lifetimes), present the rubric choice — new node kind | typed field | `tags` — the
-same way and ask. Record each answer (a one-line note per decision) so the choices are
-auditable and a later session can see why the schema looks the way it does.
+same way and ask. Record each answer (a one-line note per decision) in
+`.claude/SCHEMA_DECISIONS.md` in the generated repo (under `.claude/`, not the repo root) so the
+choices are auditable and a later session can see why the schema looks the way it does.
 
 ### 4. Define & co-evolve
 Encode the user's decisions into **both** the analyzer-side type *and* the SDK `<L>` Pydantic

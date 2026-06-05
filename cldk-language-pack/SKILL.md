@@ -35,22 +35,32 @@ them.
 
 - Confirm the **target language** and locate the CLDK reference repos — you anchor the schema
   and construction on the **already-implemented** analyzers. They normally sit as siblings:
-  `codeanalyzer-java/`, `codeanalyzer-python/` (analyzer templates), and `python-sdk/` (the SDK,
-  which also contains the **C** analyzer under `cldk/analysis/c/` — the procedural, non-class
-  anchor). **If any of these is not present locally, clone it into `/tmp` and anchor on that
-  copy** (read-only — never push to these):
+  `codeanalyzer-java/`, `codeanalyzer-python/` (analyzer templates), `codeanalyzer-ts/` (a
+  **cautionary** reference — see below), and `python-sdk/` (the SDK, which also contains the
+  **C** analyzer under `cldk/analysis/c/` — the procedural, non-class anchor). **If any of these
+  is not present locally, clone it into `/tmp` and anchor on that copy** (read-only — never push
+  to these):
   ```
-  for r in codeanalyzer-java codeanalyzer-python python-sdk; do
+  for r in codeanalyzer-java codeanalyzer-python codeanalyzer-ts python-sdk; do
     [ -d "/tmp/$r" ] || git clone --depth 1 https://github.com/codellm-devkit/$r.git "/tmp/$r"
   done
   ```
   Prefer a local sibling checkout if one exists (it may be ahead of `main`); fall back to the
   `/tmp` clone. Don't invent locations, and don't proceed to schema design without at least the
   Java and Python analyzers plus `python-sdk` available to read.
-- Skim the two analyzer references to ground yourself: `codeanalyzer-python` is the modern,
-  pluggable template (tree-sitter + Jedi); `codeanalyzer-java` is the heavyweight WALA one.
-  Most new languages follow the *structure* of the Python one but in their own ecosystem.
+- Skim the analyzer references to ground yourself: **`codeanalyzer-python` is the model to
+  replicate** — the modern, pluggable, cleanly-separated template (tree-sitter + Jedi);
+  `codeanalyzer-java` is the heavyweight WALA one. Most new languages follow the *structure* of
+  the Python one but in their own ecosystem. **`codeanalyzer-ts` is a cautionary reference: it
+  runs and validates, but it was generated as a flat monolith** (a 968-line grab-bag of free
+  functions, a `core` that inlines everything and hardcodes `entrypoints: {}`, and **no
+  pluggable pass/registry/finder layer at all**). Read it to learn the anti-patterns to avoid —
+  not the structure to copy. **Producing a modular package, not a working monolith, is a
+  first-class success criterion of this skill** (see `references/analyzer-architecture.md`).
 - Read these reference files now — they are the spec the scaffolding must satisfy:
+  - `references/analyzer-architecture.md` — **the modular package skeleton the analyzer must
+    have** (anchored on `codeanalyzer-python`, with `codeanalyzer-ts` as the anti-example).
+    Read it before scaffolding: the seams are laid up front, not retrofitted.
   - `references/canonical-schema.md` — the `analysis.json` contract and its invariants. **Read first.**
   - `references/schema-reference.md` — the exhaustive, field-by-field schema derived from the
     SDK Pydantic models. This is what the analyzer must mirror **comprehensively** (every
@@ -72,8 +82,8 @@ them.
 ## Workflow
 
 Work the steps below in order, and **don't design the whole thing up front**. Design the schema,
-materialize the project's dependencies, construct the symbol table file by file, then build the
-cheap resolver-based call graph. *Symbol Table Construction* + *Call Graph Construction* together
+**scaffold the modular package skeleton**, materialize the project's dependencies, construct the
+symbol table file by file, then build the cheap resolver-based call graph. *Symbol Table Construction* + *Call Graph Construction* together
 are **level 1 — the cheap, resolver-based analysis** (symbol table *and* call graph, both from
 the same Tier-1 resolver). The heavy **level 2 — framework-based** analysis (WALA/CodeQL/Joern/
 SVF) is optional and comes later. Each step models itself on what the mature reference analyzers
@@ -96,8 +106,15 @@ Also ask the **analysis depth** they want (`AskUserQuestion`):
   flipping the *Level 2: framework-based analysis* step from stubbed to implemented.
 
 Default to **rapid (level 1)** — level 1 is always built (it's the floor; level 2 builds on it),
-and deep is opt-in. Write the agreed choices, including the depth, to
-`codeanalyzer-<lang>/BUILD_PLAN.md`.
+and deep is opt-in. Record the agreed choices — including the depth — under an
+**"Architecture & Tooling"** heading in the analyzer's own `codeanalyzer-<lang>/README.md`. This
+is deliberately a public, top-level doc: it documents for human readers *which backend tooling
+was chosen and why*, and it doubles as the guide any later session (you included) reads to recover
+the locked decisions without re-litigating them. Capture each load-bearing slot (runtime,
+structural parser, resolver, optional enrichment, build/dep materialization, packaging, depth,
+extra node kinds) and a one-line rationale per non-default choice. Keep the *Schema Design*
+`SCHEMA_DECISIONS.md` under the analyzer's `.claude/` folder (create it if needed); only these
+tooling decisions are promoted into the README.
 
 **Then check the toolchain is installed, before building anything.** The chosen tooling has hard
 prerequisites (Node + the analyzer's deps for ts-morph; the Go toolchain for `go/types`; the
@@ -128,6 +145,20 @@ by running the loop in `references/schema-design-loop.md` per node (spine first:
    together; snake_case, optional-with-defaults, spine untouched, identity-only edges.
 
 No files are walked yet. Output: a complete, user-approved schema and the `<L>` models.
+
+### Scaffold the modular skeleton (seams first, before filling phases)
+Before writing any analysis logic, lay out the analyzer as a **modular package that mirrors
+`codeanalyzer-python`'s structure** — one subpackage per phase plus the pluggable pass layer —
+following `references/analyzer-architecture.md`. Create the boxes empty-but-wired: a thin CLI
+entry; a `core` **orchestrator that only delegates** (no inlined parsing, and never a hardcoded
+`entrypoints: {}`); `syntactic_analysis/`, `semantic_analysis/` (with the framework backend in
+its **own subpackage**, seams scaffolded even when stubbed); and the extensibility layer —
+`analysis/` (the `AnalysisPass` base + a registry that discovers, topo-orders by
+`requires`/`provides`, and runs a `run_pipeline`) and `frameworks/` (the entrypoint-finder base).
+The built-in pass list and concrete finders may start empty, but **the seams and entry-point
+discovery must exist now** — that is exactly the layer the generated TS analyzer was missing, and
+where `codeanalyzer-extension-builder` later plugs in. Retrofitting modularity into a monolith is
+the failure this step prevents.
 
 ### Project Materialization (build & dependency resolution)
 Before parsing, materialize the target project's dependencies so the resolver can populate
@@ -208,10 +239,41 @@ for an in-process pip backend — match your packaging choice from the build pla
 <fixture>)` yields a non-empty symbol table and a dangling-free call graph; SDK tests pass with
 the backend mocked.
 
+### Write the analyzer README (last step)
+The analyzer's `codeanalyzer-<lang>/README.md` already holds the **Architecture & Tooling**
+decisions recorded back in *Orient & choose the backend tooling*. As the **final build step**,
+grow that file into a complete, user-facing README modeled on the reference analyzers'
+**`main`-branch** READMEs — `codeanalyzer-python/README.md` (the model to replicate) and
+`codeanalyzer-java/README.md`. Don't invent a layout; mirror theirs, in this order:
+- **Title + one-line what-it-is** — name the language and the chosen backend tooling (e.g.
+  "Static analysis for `<lang>` using `<parser>` + `<resolver>`"), echoing the reference openers.
+- **Prerequisites / installation** — the toolchain confirmed installed up front (runtime,
+  parser, resolver, plus any framework backend if *deep*), with exact per-platform install
+  commands as Python does for `venv`/build tools.
+- **Building** — how to produce the self-contained binary chosen in *CLI, caching/incremental,
+  packaging* (or the pip install, for a Python analyzer).
+- **Usage + CLI options** — paste the real `--help` output (from `cli-contract.md`), then a few
+  worked **examples** like the Python README (basic symbol table, `--output`, level-2/framework
+  flag).
+- **Analysis levels** — what level 1 (symbol table + resolver call graph) emits today and what
+  level 2 (framework backend) adds — flagged stubbed-vs-implemented per the depth choice.
+- **Output schema** — point at the canonical `analysis.json` / `<Lang>Application` contract.
+- **Python SDK (CLDK) integration** — the `CLDK(language="<lang>")` entry from *Wire the Python
+  SDK facade*.
+- Keep the **Architecture & Tooling** section (the locked decisions) intact as its own heading.
+
+Write only what actually runs — don't document level-2 as working if it's a stubbed extension
+point. The README is the human-readable counterpart to the validated `analysis.json`: like every
+other stage, it describes the analyzer as it really is.
+
 ### Summarize
 Report: the build plan, the schema decisions the user made, what runs today (the cheap level-1
 analysis — symbol table + resolver call graph — on the fixture), what's stubbed (the level-2
-framework backend), the SDK branch name, and the diff summary.
+framework backend), the SDK branch name, the analyzer `README.md` written as the last step, and the diff summary.
+Confirm the **modularity** checks
+from `references/analyzer-architecture.md` actually hold (delegating `core`, node-kind-split
+builder, isolated framework subpackage, present-and-wired `analysis/` + `frameworks/` layer) —
+report it as a checklist, not an aspiration.
 
 > **Never fake verification.** The toolchain is confirmed installed up front (*Orient & choose
 > the backend tooling*), so every stage's verify step should actually run. If a required tool is
@@ -220,6 +282,14 @@ framework backend), the SDK branch name, and the diff summary.
 > without running it.
 
 ## Guardrails
+- **Modularity is a success criterion, not a nicety.** A monolithic analyzer that emits valid
+  `analysis.json` has met the schema bar and *failed* the maintainability bar — both are
+  required. Mirror `codeanalyzer-python`'s package structure (`references/analyzer-architecture.md`):
+  a delegating `core` (never inlined analysis, never a hardcoded `entrypoints: {}`), a cohesive
+  symbol-table builder split by node kind (not a flat pile of free functions), the framework
+  backend isolated in its own subpackage, and a real pluggable layer — `analysis/` (pass +
+  registry) and `frameworks/` (finder base), scaffolded even when the built-in pass list is
+  empty. `codeanalyzer-ts` is the anti-example of every one of these; do not reproduce it.
 - **The schema contract is the success criterion.** An analyzer that runs but emits
   non-conformant JSON has failed the real job — the SDK can't load it. Mirror the schema
   **comprehensively** (`schema-reference.md`) and prove it by validating output against the

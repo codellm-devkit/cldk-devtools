@@ -67,4 +67,4 @@ result (classpath / venv) to the resolver → do this before parsing.**
 - If your structural tool also resolves types (ts-morph), you want deps materialized before
   parsing so the symbol table's type fields are populated; otherwise you parse structurally
   first and fill types when the resolver runs (the call-graph step). State which path you took
-  in `BUILD_PLAN.md`.
+  under the analyzer `README.md`'s **Architecture & Tooling** heading.

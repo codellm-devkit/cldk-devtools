@@ -51,6 +51,20 @@ map keyed by path**, with three entry modes (all / target-files / single-source)
 6. **Parallelism is optional** (the Ray analog) — only add it once the serial path is correct,
    and keep output deterministic regardless.
 
+## Keep the builder modular (don't ship a flat function pile)
+The per-file builder is the largest single piece of the analyzer, so it is exactly where
+modularity slips. Python's `SymbolTableBuilder` is ~968 lines **but cohesive**: one class whose
+private methods are grouped *per node kind* — `_add_class`, `_callables`, `_class_attributes`,
+`_callable_parameters`, `_pydecorators`, `_call_sites`, `_module_variables`,
+`_cyclomatic_complexity`, plus the `_infer_*` resolver helpers — sharing the resolver/project
+state on `self`. A reader finds "how are classes built?" in one named place. Replicate **that
+organization**, not just the line count: a cohesive builder (a class, or one focused
+function/module per node kind) with shared context, and if it grows past a few hundred lines,
+split per node kind into sibling modules under `syntactic_analysis/`. **Do not** write it the way
+`codeanalyzer-ts/src/syntactic_analysis/builders.ts` did — 36+ free functions in a flat namespace
+threading state through arguments, with `buildClass`/`buildInterface`/`buildEnum` scattered across
+the file. See `analyzer-architecture.md` rule 2.
+
 Keep this stage to the symbol table — record call sites but **don't resolve them into edges**
 yet. That resolution is the *cheap next step* (still level 1; `backend-recipe.md` step 6), where
 the same resolver maps each site to its callee. Type fields may be populated here if your

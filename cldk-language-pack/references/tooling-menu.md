@@ -81,7 +81,7 @@ cldk should not have to install Node, a JVM, or rustc just to analyze code. Conc
 
 Bundle or download the binary on first use, **version it**, and pin that version in the SDK
 (`[tool.backend-versions]`). Only deviate from "binary" if the user has a hard constraint —
-and say why in `BUILD_PLAN.md`.
+and say why under the analyzer `README.md`'s **Architecture & Tooling** heading.
 
 ## Worked recommendations by language
 
@@ -150,10 +150,10 @@ These are starting points to present, not laws. Confirm with the user.
   the native resolver can't reach.
 
 ## Output of this step
-A short, explicit **build plan** the user has signed off on — e.g.:
+A short, explicit set of **architecture & tooling** decisions the user has signed off on — e.g.:
 
 ```
-codeanalyzer-ts build plan
+codeanalyzer-ts — architecture & tooling
   depth:          rapid (level 1) — symbol table + resolver call graph; level 2 stubbed
   runtime:        Node
   structural:     ts-morph (TS compiler API)
@@ -164,5 +164,7 @@ codeanalyzer-ts build plan
   extra nodes:    interface, type-alias, enum
 ```
 
-Write this into the generated repo (e.g. `codeanalyzer-ts/BUILD_PLAN.md`) so the scaffolding
-and any later session share the same decisions.
+Write this into the generated analyzer's `README.md` under an **Architecture & Tooling** heading
+(e.g. `codeanalyzer-ts/README.md`) so it's explicit for human readers and the scaffolding and any
+later session share the same locked decisions. Add a one-line rationale next to any non-default
+choice.
