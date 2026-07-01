@@ -89,17 +89,16 @@ pytestmark = pytest.mark.skipif(
 )
 ```
 
-**Helper pattern** — one helper that constructs a real `<Lang>Analysis` pointing at the
-fixture and a `tmp_path` output dir:
+**Helper pattern** — one helper that constructs a real analysis via the factory method,
+pointing at the fixture, with a `tmp_path` cache dir to isolate each test's output:
 
 ```python
 def _analysis(tmp_path, level=AnalysisLevel.symbol_table):
-    return <Lang>Analysis(
-        project_dir=FIXTURE_DIR,
-        analysis_backend_path=None,
-        analysis_json_path=tmp_path,   # isolates each test's output
+    return CLDK.<lang>(
+        project_path=FIXTURE_DIR,
         analysis_level=level,
-        eager_analysis=True,           # always re-run; don't depend on cached state
+        eager=True,                                       # always re-run; don't depend on cached state
+        backend=<Lang>CodeAnalyzerConfig(cache_dir=tmp_path),  # isolates each test's artifacts
     )
 ```
 
@@ -124,8 +123,8 @@ def _analysis(tmp_path, level=AnalysisLevel.symbol_table):
 ## 4. Definition of done (SDK surface)
 
 - [ ] Mocked SDK tests pass under `pytest` (backend patched).
-- [ ] `CLDK(language="<lang>").analysis(project_path=<fixture>).get_symbol_table()` is
-  non-empty when run with the binary on PATH.
+- [ ] `CLDK.<lang>(project_path=<fixture>).get_symbol_table()` is non-empty when run with the
+  binary on PATH (and the legacy `CLDK(language="<lang>").analysis(...)` shim still works).
 - [ ] `get_call_graph()` returns a NetworkX DiGraph with no dangling nodes.
 - [ ] E2E tests exist and skip cleanly when the binary is absent.
 - [ ] `pyproject.toml [tool.backend-versions]` is pinned to the released version.

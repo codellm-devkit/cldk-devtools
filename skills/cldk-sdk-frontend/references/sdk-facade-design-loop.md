@@ -94,11 +94,15 @@ a recommended default first, anchored in what the references did. The load-beari
 - **`get_callers`/`get_callees` signature.** *Java/Python* take class + method-declaration
   strings; *C* takes a `CFunction` object. Which addressing model fits the language's callable
   identity?
-- **Constructor extras + guards.** Beyond the common params (`project_dir`, `analysis_level`,
-  `analysis_json_path`, `target_files`, `eager_analysis`), which language-specific extras —
-  *Java*'s `source_code` / `analysis_backend_path`, *Python*'s `cache_dir` / `use_codeql` /
-  `use_ray`, or *C*'s bare `project_dir`-only? And which combinations does the `cldk/core.py`
-  dispatch **reject** (Python rejects `source_code` + `analysis_backend_path`)?
+- **Backend config + guards.** The facade constructor now carries only the common params
+  (`project_dir`, `analysis_level`, `target_files`, `eager_analysis`, `backend`); backend-only
+  knobs live on the `backend=` config object (`CodeAnalyzerConfig` and language subclasses like
+  *Python*'s `PyCodeAnalyzerConfig(use_ray)`, *TS*'s `TSCodeAnalyzerConfig(tsc_only)`), with an
+  optional `Neo4jConnectionConfig` arm. Which config subclass (if any) does this language need,
+  and which guards does the `CLDK.<lang>()` factory apply (e.g. `project_path` optional only for
+  the Neo4j backend; *Java* still rejecting `source_code` + `project_path` together)? Note the
+  older `analysis_backend_path` / `analysis_json_path` params are gone — the binary ships with
+  the packaged dependency and output caching is `cache_dir` (language-keyed subdir).
 - **Tier C — tree-sitter.** Ship a grammar so `is_parsable` / `get_raw_ast` work, or omit Tier C?
   (Default omit unless you already ship a `Treesitter<Lang>` parser.)
 - **Tier D — framework / semantic views.** Entrypoints, CRUD, `get_test_methods`, comments. These

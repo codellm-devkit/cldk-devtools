@@ -2,7 +2,8 @@
 name: cldk-sdk-frontend
 description: >-
   Wire an existing `codeanalyzer-<lang>` backend analyzer into a CodeLLM-DevKit (CLDK) FRONTEND
-  SDK so a developer can call it — `CLDK(language="<lang>").analysis(...)` in the Python SDK today,
+  SDK so a developer can call it — `CLDK.<lang>(project_path=..., backend=...)` in the Python SDK
+  today (with the legacy `CLDK(language="<lang>").analysis(...)` retained as a compat shim),
   and the TypeScript / Rust / Go / Java SDKs as they come online. Use this whenever a CLDK
   maintainer wants to "add <lang> to the cldk SDK", "wire the analyzer into python-sdk", "register
   a language in CLDK", "build the SDK facade/bindings for <lang>", or "expose <lang> analysis
@@ -21,11 +22,19 @@ description: >-
 
 Bind an existing `codeanalyzer-<lang>` analyzer into a CLDK **frontend SDK** so the language is
 reachable through the user-facing API. Today that means the **Python SDK** (`python-sdk`,
-`CLDK(language="<lang>").analysis(project_path=...)`); the **TypeScript SDK** (`typescript-sdk` =
+`CLDK.<lang>(project_path=..., backend=...)`, with the legacy `CLDK(language="<lang>")
+.analysis(...)` as a compat shim); the **TypeScript SDK** (`typescript-sdk` =
 `@codellm-devkit/cldk`, `CLDK.for("<lang>").analysis({ projectPath })`) is wired the same way, and
 Rust/Go/Java SDKs will follow as they exist. This skill owns **one surface** — the SDK bindings.
 Building the analyzer and its `analysis.json` contract is the separate **codeanalyzer-backend**
 skill, whose output this skill consumes.
+
+The Python SDK now selects behavior along **two orthogonal axes**: the **language** (which
+`CLDK.<lang>()` factory method) and the **backend** (the *type* of the `backend=` config object —
+a local `CodeAnalyzerConfig` that runs the packaged binary, or a `Neo4jConnectionConfig` that
+reads a graph populated out of band). Both backends sit behind a per-language backend ABC
+(`<Lang>AnalysisBackend`), so wiring a language means a facade **plus** a backend contract, not
+just a wrapper.
 
 The skill's defining move is **not** filling in files — it's running a guided, interactive design
 of the facade's *query surface* (the SDK-side mirror of the backend's schema design), then encoding
@@ -65,7 +74,11 @@ If any input is missing, get it from the analyzer (run it on a fixture, read its
     facade's query surface slot by slot by anchoring on the Java + Python + C facades and
     **bringing every divergence to the user as a decision**. Read before touching any SDK.
   - `references/python-sdk-wiring.md` — the exact Python SDK files to create/edit (the *encoding*
-    of the approved facade surface in `python-sdk`).
+    of the approved facade surface in `python-sdk`): backend config, the `<Lang>AnalysisBackend`
+    ABC + local backend, the `CLDK.<lang>()` factory method, models, and tests.
+  - `references/neo4j-backend.md` — the **optional second backend**: `<Lang>Neo4jBackend`, which
+    reconstructs the canonical model from a graph (`--emit neo4j`) for local/Neo4j parity. Read
+    only if the analyzer emits a graph.
   - `references/typescript-sdk-wiring.md` — the exact TypeScript SDK files to create/edit; the
     subprocess-only binding surface (the second *encoding*).
 
@@ -93,10 +106,14 @@ Tier A (lifecycle/whole-program: `get_application_view`, `get_symbol_table`, `ge
 - the **decoration accessor** (`get_methods_with_annotations` vs `get_methods_with_decorators`);
 - **native-kind accessors** for the schema kinds the analyzer added (from `SCHEMA_DECISIONS.md`);
 - the **`get_callers`/`get_callees` addressing model** (name strings vs object);
-- the **constructor extras + guards** (Java `source_code`/`analysis_backend_path`; Python
-  `cache_dir`/`use_codeql`/`use_ray`; C bare `project_dir`);
+- the **backend config + knobs** (which `<Lang>CodeAnalyzerConfig` subclass, if any — Python's
+  `use_ray`, TS's `tsc_only`; whether a `Neo4jConnectionConfig` arm exists) — backend-only knobs
+  live on the config object now, not on the facade constructor, which carries only `project_dir`
+  / `analysis_level` / `target_files` / `eager_analysis` / `backend`;
 - which optional **Tier C** (tree-sitter) and **Tier D** (framework/semantic views) methods the
-  analyzer **actually populates** — implement only those; the rest are progressive.
+  analyzer **actually populates** — implement only those; the rest are progressive;
+- whether to ship the **Neo4j backend** (only if the analyzer emits a graph) and, if so, the
+  **bulk accessors** (`get_callables_overview`, `get_method_bodies`, …) worth adding to the ABC.
 
 One facade vocabulary feeds **every** SDK encoding, so decide it once here. Record each answer in
 `.claude/FACADE_DECISIONS.md` (the SDK-side counterpart to the backend's `SCHEMA_DECISIONS.md`).
@@ -108,14 +125,17 @@ finishing. Do the surfaces back to back when more than one is in scope (order do
 
 **Python SDK** (`python-sdk`, branch `add-<lang>-support`) — `references/python-sdk-wiring.md`.
 Create the `cldk/models/<lang>/` Pydantic models that **validate against the sample
-`analysis.json`** (built from the contract + `SCHEMA_DECISIONS.md`); add the `cldk/analysis/<lang>/`
-facade (mirror the method surface decided above), the backend wrapper that resolves the binary via
-`analysis_backend_path → $CODEANALYZER_<LANG>_BIN → codeanalyzer_<lang>.bin_path() → in-tree
-fallback` (or imports the package in-process, for a Python analyzer), the `cldk/core.py` dispatch
-branch, the `pyproject.toml` dependency + `[tool.backend-versions]` pin (`codeanalyzer-<lang>==X`,
-the version from the backend hand-off), and mocked tests. **Verify:**
-`CLDK(language="<lang>").analysis(project_path=<fixture>)` yields a non-empty symbol table and a
-dangling-free call graph; SDK tests pass with the backend mocked.
+`analysis.json`** (built from the contract + `SCHEMA_DECISIONS.md`); add the backend config +
+discriminated union + cache key in `backend_config.py`; the `cldk/analysis/<lang>/` facade
+(mirror the method surface decided above) backed by a **`<Lang>AnalysisBackend` ABC** with a local
+`<Lang>Codeanalyzer` implementation (resolving the binary from the packaged `codeanalyzer-<lang>`
+wheel / `$CODEANALYZER_<LANG>_BIN` / `shutil.which`, or importing the package in-process for a
+Python analyzer) and — if the analyzer emits a graph — a `<Lang>Neo4jBackend`
+(`references/neo4j-backend.md`); the `CLDK.<lang>()` factory method in `cldk/core.py` (plus the
+legacy `.analysis()` shim route); the `pyproject.toml` dependency + `[tool.backend-versions]` pin
+(`codeanalyzer-<lang>==X`, from the backend hand-off; keep `neo4j` an optional extra); and mocked
++ E2E + backend-contract tests. **Verify:** `CLDK.<lang>(project_path=<fixture>)` yields a
+non-empty symbol table and a dangling-free call graph; SDK tests pass with the backend mocked.
 
 **TypeScript SDK** (`typescript-sdk` = `@codellm-devkit/cldk`, branch `add-<lang>-support`) —
 `references/typescript-sdk-wiring.md`. Add the `src/models/<lang>/` types (mirror
@@ -148,10 +168,13 @@ mocked), and the diff summary per repo.
 - **Precondition is real.** This skill binds an *existing* analyzer. If `codeanalyzer-<lang>` isn't
   emitting conformant `analysis.json` yet, stop and run **codeanalyzer-backend** first — you can't
   validate SDK models against output that doesn't exist.
-- **Design the surface once; encode it everywhere.** There is no shared base class across facades —
-  `JavaAnalysis`/`PythonAnalysis`/`CAnalysis` mirror each other by convention and callers
-  duck-type. Reproduce Tier A verbatim and name the leaf accessors exactly as decided, identically
-  across every SDK, because drift won't be caught by the type system.
+- **Design the surface once; encode it everywhere.** The **facade** classes still share no base —
+  `JavaAnalysis`/`PythonAnalysis`/`TypeScriptAnalysis`/`CAnalysis` mirror each other by convention
+  and callers duck-type, so reproduce Tier A verbatim and name the leaf accessors exactly as
+  decided, identically across every SDK. The **backend** layer, however, now *does* have a
+  per-language ABC (`<Lang>AnalysisBackend`) that both the local and Neo4j backends implement — a
+  `test_<lang>_backend_contract.py` enforces it. Design the facade vocabulary once; declare it on
+  the backend ABC so both backends stay in lockstep.
 - **Models must validate against a real sample.** Build the `<L>` models against the actual
   `analysis.json` the analyzer emits, field-for-field (Pydantic silently drops unknown keys — define
   every field you intend to read). Validation against the `<Lang>Application` model is the

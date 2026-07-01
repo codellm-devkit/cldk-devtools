@@ -1,16 +1,35 @@
 # Wiring the new language into the Python SDK
 
 Once `codeanalyzer-<lang>` emits a conformant `analysis.json`, the second surface is the
-CLDK Python SDK (`python-sdk/`). The SDK is the user-facing API: `CLDK(language="<lang>")
-.analysis(project_path=...)`. Adding a language means creating two parallel module trees and
-registering a dispatch branch. **Do all of this on a git branch in `python-sdk`** (the user
-chose branch-based edits) so the changes are reviewable and reversible.
+CLDK Python SDK (`python-sdk/`). The SDK's user-facing API now selects behavior along **two
+orthogonal axes**: the **language** (a static factory method `CLDK.<lang>(project_path=...)`)
+and the **backend** (the *type* of the config object passed as `backend=`). Adding a language
+means creating the model tree, the facade, a **backend ABC with (at least) a local
+implementation**, a factory method, and a dispatch branch. **Do all of this on a git branch in
+`python-sdk`** (the user chose branch-based edits) so the changes are reviewable and reversible.
+
+```python
+# Current entry API — one factory method per language:
+CLDK.<lang>(project_path="...", backend=CodeAnalyzerConfig())      # local codeanalyzer backend (default)
+CLDK.<lang>(backend=Neo4jConnectionConfig(uri="bolt://..."))       # read-only Neo4j backend (no project_path needed)
+
+# Legacy CLDK(language="<lang>").analysis(project_path=...) still works — it's a compat shim
+# forwarding to the factory method. Keep it wired, but the factory methods are canonical.
+```
 
 Pick the worked example to copy based on how your analyzer is invoked:
 - **Subprocess binary/JAR** (TS, Go, most new languages) → copy the **Java** pattern
   (`cldk/analysis/java/`, `cldk/models/java/`). The facade shells out and parses `analysis.json`.
 - **In-process pip package** (only if the analyzer is written in Python) → copy the **Python**
   pattern (`cldk/analysis/python/`), which imports the backend and calls `.analyze()`.
+
+**Backend selection is now config-object driven**, not per-parameter flags. Each language has a
+discriminated union (`cldk/analysis/commons/backend_config.py`): `JavaBackend = Union[
+CodeAnalyzerConfig, Neo4jConnectionConfig]`, `PyBackend = Union[PyCodeAnalyzerConfig,
+Neo4jConnectionConfig]`, `TSBackend = Union[TSCodeAnalyzerConfig, CodeAnalyzerConfig,
+Neo4jConnectionConfig]`. The facade `isinstance`-checks the config and constructs the matching
+backend. Ship the **local backend always**; ship the **Neo4j backend** if the analyzer emits a
+graph (`--emit neo4j`) — see `references/neo4j-backend.md`.
 
 ## Branch first
 ```
@@ -44,60 +63,80 @@ than committing unrelated changes.
   schema). For an in-process Python-style backend, re-export upstream models like
   `cldk/models/python/__init__.py` does instead of redefining them.
 
-### 2. Analysis facade — `cldk/analysis/<lang>/`
-- `<lang>_analysis.py` — the `<Lang>Analysis` class. See **"The facade abstraction"** below for
-  exactly what to implement and in what priority. Back it with a backend wrapper.
-- `__init__.py` — export `<Lang>Analysis`.
-- `codeanalyzer/codeanalyzer.py` — the backend wrapper:
-  - **Subprocess pattern**: build the CLI args (the contract the **codeanalyzer-backend** skill
-    defines in its `cli-contract.md`), `subprocess.run` the
-    analyzer binary with `-o <tempdir>`, read `<tempdir>/analysis.json`, and validate into
-    `<L>Application`. Resolve/version-pin the binary (see step 4). This mirrors
-    `cldk/analysis/java/codeanalyzer/codeanalyzer.py`.
-  - **In-process pattern**: `from codeanalyzer_<lang> import Codeanalyzer, AnalysisOptions`,
-    construct options from the facade args, `with Codeanalyzer(opts) as a: return a.analyze()`.
-    This mirrors `cldk/analysis/python/codeanalyzer/codeanalyzer.py` (note: it imports the
-    backend directly — no subprocess).
+### 2. Backend config — `cldk/analysis/commons/backend_config.py`
+- Add a `<Lang>CodeAnalyzerConfig(CodeAnalyzerConfig)` subclass if the language has backend-only
+  knobs (e.g. Python's `use_ray`, TS's `tsc_only`); if it has none, reuse `CodeAnalyzerConfig`.
+- Add the discriminated union: `<Lang>Backend = Union[<Lang>CodeAnalyzerConfig,
+  Neo4jConnectionConfig]` (drop the Neo4j arm if you don't ship a graph backend).
+- Add the cache key to `_CACHE_KEYS` (`{"<lang>": "<lang>"}`) so `cache_subdir()` keeps a
+  polyglot repo's per-language artifacts from colliding under `<project>/.codeanalyzer/`.
+
+### 3. Analysis facade & backends — `cldk/analysis/<lang>/`
+The facade is thin; the real work is the **backend ABC** and its implementations.
+- `<lang>_analysis.py` — the `<Lang>Analysis` class. Constructor takes `project_dir`,
+  `analysis_level`, `target_files`, `eager_analysis`, `backend=<Lang>Backend | None`. In
+  `__init__`, `isinstance`-check the config and construct the backend: `Neo4jConnectionConfig`
+  → `<Lang>Neo4jBackend`, else `<Lang>Codeanalyzer`. Then **forward every query to
+  `self.backend`**. See **"The facade abstraction"** below for the method surface and priority.
+- `backend.py` — the `<Lang>AnalysisBackend(ABC)` **base class**. This is new since the older
+  "no ABC" SDK: it declares every query method the facade forwards (`get_application_view`,
+  `get_symbol_table`, `get_call_graph`, `get_all_callers/callees`, the class/method/field
+  accessors, …) as `@abstractmethod`. Both backends implement it, which is what guarantees
+  local/Neo4j parity. Mirror `cldk/analysis/java/backend.py` (`JavaAnalysisBackend`).
+- `codeanalyzer/codeanalyzer.py` — the **local** backend `<Lang>Codeanalyzer(<Lang>AnalysisBackend)`:
+  - **Subprocess pattern**: build the CLI args (the **codeanalyzer-backend** skill's
+    `cli-contract.md`), `subprocess.run` the binary with `-o <cache_subdir>`, read
+    `analysis.json`, validate into `<L>Application`. Resolve the binary (bundled artifact like
+    the Java JAR, or `$CODEANALYZER_<LANG>_BIN` / `codeanalyzer_<lang>.bin_path()` like TS, or
+    `shutil.which` — see *Common pitfalls*). Mirrors `cldk/analysis/java/codeanalyzer/`.
+  - **In-process pattern** (Python analyzer only): `from codeanalyzer.core import Codeanalyzer`
+    + `AnalysisOptions`, construct options, `Codeanalyzer(opts).analyze()`. Mirrors
+    `cldk/analysis/python/codeanalyzer/codeanalyzer.py`.
   - `__init__.py` — export the wrapper class.
+- `neo4j/` — **only if** the analyzer emits a graph: `neo4j_backend.py`
+  (`<Lang>Neo4jBackend(<Lang>AnalysisBackend)`), `reconstruct.py` (bulk-fetch nodes/edges over
+  Bolt → rebuild `<L>Application`), `config.py`. Full spec in `references/neo4j-backend.md`.
+- `__init__.py` — export `<Lang>Analysis`.
 
-### 3. Core dispatch — `cldk/core.py`
-Three edits, mirroring the existing Java/Python/C branches:
-- **Import** near the top with the other analysis imports:
+### 4. Factory method & dispatch — `cldk/core.py`
+- **Import** the facade near the other analysis imports.
+- **Add the static factory method** `CLDK.<lang>(...)`, mirroring `CLDK.java` / `CLDK.python` /
+  `CLDK.typescript` (lines ~128–243):
   ```python
-  from cldk.analysis.<lang> import <Lang>Analysis
+  @staticmethod
+  def <lang>(
+      project_path: str | Path | None = None,
+      *,
+      analysis_level: str = AnalysisLevel.symbol_table,
+      target_files: List[str] | None = None,
+      eager: bool = False,
+      backend: <Lang>Backend | None = None,
+  ) -> <Lang>Analysis:
+      # project_path is optional ONLY when backend is a Neo4jConnectionConfig (graph read out of band)
+      ...
+      return <Lang>Analysis(project_dir=_normalize_project_path(project_path),
+                            analysis_level=analysis_level, target_files=target_files,
+                            eager_analysis=eager, backend=backend)
   ```
-- **Dispatch branch** in `CLDK.analysis(...)` (the `if self.language == ... elif ...` chain,
-  currently java→python→c→`NotImplementedError`). Add before the `else`:
-  ```python
-  elif self.language == "<lang>":
-      return <Lang>Analysis(
-          project_dir=project_path,
-          analysis_level=analysis_level,
-          analysis_json_path=analysis_json_path,
-          target_files=target_files,
-          eager_analysis=eager,
-          # subprocess backends also take analysis_backend_path; in-process take cache_dir
-      )
-  ```
-  Honor the existing guards (e.g. Python rejects `source_code` and `analysis_backend_path`);
-  apply whichever guards fit your invocation model.
-- **(Optional) tree-sitter dispatch** in `treesitter_parser()` and `tree_sitter_utils()` if
-  you ship a `Treesitter<Lang>` parser/sanitizer under `cldk/analysis/commons/treesitter/`
-  and `cldk/utils/sanitization/<lang>/`. Skip if not providing them.
+- **Extend the legacy `CLDK(language=...).analysis(...)` shim** to route `"<lang>"` to the new
+  factory method (keep the deprecated path working).
+- **(Optional) tree-sitter dispatch** in `treesitter_parser()` / `tree_sitter_utils()` if you
+  ship a `Treesitter<Lang>` parser/sanitizer. Skip if not providing them.
 
-### 4. Dependencies & version pin — `pyproject.toml`
+### 5. Dependencies & version pin — `pyproject.toml`
 - If the backend is a pip package: add it to `dependencies` (as Python does:
   `"codeanalyzer-python==X"`).
-- If it's a subprocess binary: arrange distribution (bundled like the Java JAR under
-  `cldk/analysis/<lang>/codeanalyzer/bin/`, or downloaded on first run) and record the pinned
-  version under `[tool.backend-versions]`:
+- If it's a subprocess binary: pin the analyzer's PyPI wheel that carries the binary
+  (`"codeanalyzer-<lang>==X"`) and record it under `[tool.backend-versions]`:
   ```toml
   [tool.backend-versions]
   codeanalyzer-<lang> = "0.1.0"
   ```
+- If you ship the Neo4j backend, keep the `neo4j` driver an **optional extra**
+  (`pip install cldk[neo4j]`) and import it lazily — never a hard dependency.
 - Add a tree-sitter grammar dep (`tree-sitter-<lang>==X`) only if you ship a parser.
 
-### 5. Tests — `tests/analysis/<lang>/`
+### 6. Tests — `tests/analysis/<lang>/`
 Full criteria and patterns in `sdk-testing.md`. The suite has three-to-four files, mirroring
 the existing per-language dirs (`tests/analysis/java/`, `.../python/`, `.../typescript/`):
 
@@ -116,26 +155,42 @@ the existing per-language dirs (`tests/analysis/java/`, `.../python/`, `.../type
 
 ## The facade abstraction
 
-The single most important structural fact: **there is no shared base class or ABC.**
-`JavaAnalysis`, `PythonAnalysis`, and `CAnalysis` are independent classes that *mirror each
-other's method names by convention*; `CLDK.analysis()` returns the union type and callers
-duck-type. Nothing enforces the interface — so reproduce the shared vocabulary deliberately and
-match names/signatures exactly, because drift won't be caught by the type system.
+**Two structural facts, and they pull in different directions:**
 
-**Shape.** A facade is a **thin, read-only, lazily-evaluated query layer over the canonical
-`Application`**, backed by a swappable `<Lang>Codeanalyzer` wrapper. The facade holds almost no
-logic — it forwards to the wrapper and builds a couple of *derived* views (NetworkX graphs).
-Two layers:
+1. **The facade classes still have no shared base.** `JavaAnalysis`, `PythonAnalysis`,
+   `TypeScriptAnalysis`, `CAnalysis` are independent classes that *mirror each other's method
+   names by convention*; the factory methods return the union type and callers duck-type.
+   Nothing enforces the *facade* vocabulary — reproduce it deliberately and match
+   names/signatures exactly, because drift won't be caught by the type system.
+2. **The backend layer now DOES have an ABC** (this changed since the older SDK). Each language
+   defines `<Lang>AnalysisBackend(ABC)` in `cldk/analysis/<lang>/backend.py`, and **both**
+   backends — the local `<Lang>Codeanalyzer` and the read-only `<Lang>Neo4jBackend` — subclass
+   it. The ABC is the contract that guarantees the two backends answer identically; a
+   `test_<lang>_backend_contract.py` asserts every abstract method is implemented.
+
+**Shape — three layers now, not two:**
 
 ```
-<Lang>Analysis (public facade)  ──forwards to──▶  <Lang>Codeanalyzer (backend wrapper)
-   read-only query vocabulary                       runs binary/pkg → parses analysis.json → Application
+<Lang>Analysis (public facade)                     ── picks backend by config type, forwards queries
+   read-only query vocabulary                          │
+        │                                              ▼
+        └─ backend: <Lang>AnalysisBackend (ABC)  ◀── isinstance(backend_cfg, Neo4jConnectionConfig)?
+                ├─ <Lang>Codeanalyzer   → runs binary/pkg → parses analysis.json → <L>Application
+                └─ <Lang>Neo4jBackend   → bulk Cypher fetch → reconstructs <L>Application (parity)
 ```
 
-**Constructor contract.** Common params: `project_dir`, `analysis_level`, `analysis_json_path`,
-`target_files`, `eager_analysis`. Then language-specific extras (Java: `source_code`,
-`analysis_backend_path` to locate the JAR; Python: `cache_dir`, `use_codeql`, `use_ray`) —
-supplied and guarded in the `cldk/core.py` dispatch.
+The facade holds almost no logic: it forwards to `self.backend` and builds a couple of *derived*
+views (NetworkX graphs). Both backends produce the **same** `<L>Application`, so the facade code
+above them is backend-agnostic.
+
+**Constructor contract.** Common params: `project_dir`, `analysis_level`, `target_files`,
+`eager_analysis`, and `backend=<Lang>Backend | None` (the config object). Note the changes from
+the older SDK: **`analysis_backend_path` is gone** (the binary ships with the packaged
+`codeanalyzer-<lang>` dependency), and **`analysis_json_path` folded into `cache_dir`** —
+carried on the `CodeAnalyzerConfig` and resolved to a language-keyed subdirectory by
+`cache_subdir(cache_dir, project_dir, "<lang>")` (default root `<project>/.codeanalyzer/`).
+Language-specific backend knobs now live on the config subclass (Python `use_ray`, TS
+`tsc_only`), not as facade constructor params. Java keeps a deprecated `source_code` param.
 
 **Implement in priority tiers** (mirror the names exactly unless noted):
 
@@ -158,6 +213,13 @@ supplied and guarded in the `cldk/core.py` dispatch.
   (`get_all_crud_operations` + create/read/update/delete), `get_test_methods`,
   comments/docstrings. This is the framework/domain axis — it just surfaces what the analyzer's
   detection produced.
+- **Tier E — bulk accessors (recommended once the Neo4j backend exists):** coarse-grained
+  batch reads that avoid per-callable fan-out — `get_callables_overview()` (lightweight list of
+  every callable without full reconstruction), `get_method_bodies(signatures)`,
+  `get_decorated_callables(decorators)`, `get_callsites_for(signatures)`. These matter most for
+  the Neo4j backend, where each fine-grained accessor would otherwise be a separate round-trip;
+  declare them on the ABC so both backends provide them. Python added these first
+  (`python_analysis.py`) — anchor on it.
 
 **Minimal viable facade** = Tier A + `get_classes`/`get_class`/`get_methods`/`get_method`.
 Everything else is progressive — don't stub Tier D methods the analyzer can't yet populate;
