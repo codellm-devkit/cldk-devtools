@@ -8,7 +8,7 @@
     "email": "i.m.ralk@gmail.com"
   },
   "homepage": "https://codellm-devkit.info",
-  "repository": "https://github.com/codellm-devkit/cldk-skillset",
+  "repository": "https://github.com/codellm-devkit/developer-skillset",
   "license": "Apache-2.0",
   "keywords": ["cldk", "codellm-devkit", "code-analysis", "static-analysis", "skills"]
 }
