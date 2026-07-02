@@ -1,11 +1,24 @@
 # Dataflow construction — the method
 
-The stage-by-stage method for building the level-3 graphs defined in `dataflow-graphs.md`. The
+The stage-by-stage method for building the levels 3–4 graphs defined in `dataflow-graphs.md`. The
 algorithms here are **language-independent** — dominators, control dependence, reaching
 definitions, SCC condensation, summary composition are the same in every analyzer. What differs
 per language is (a) the AST→CFG lowering rules, (b) the variable-identity/aliasing model, and
 (c) the points-to substrate — (c) is a menu decision (`dataflow-substrate-menu.md`); (a) and (b)
 have per-language checklists below.
+
+**The stages divide cleanly into the two levels**, and the division is the whole reason they are
+two levels:
+
+- **Level 3 — intraprocedural (Stages 1–4):** CFG, dominance, def-use, PDG. Needs nothing but the
+  AST; each callable is independent (embarrassingly parallel); the gate is a per-function slice.
+  Shippable on its own.
+- **Level 4 — interprocedural (Stages 5–8):** the points-to oracle, summaries, the SDG, and
+  clients. Needs the substrate-menu oracle and the whole-program summary fixpoint. Builds on L3.
+
+The **Stage 4 → Stage 5 seam is the L3/L4 boundary.** Everything before it is local and
+oracle-free; everything after needs cross-function machinery. A language ships L3 first, then L4
+when its oracle lands.
 
 Work the stages **in order** and pass each gate before starting the next — the same
 gate discipline as symbol table → call graph. Every stage is testable in isolation against
@@ -13,7 +26,7 @@ fixtures, which is what makes this buildable (and learnable) incrementally.
 
 ---
 
-## Stage 1 — Exceptional CFG per callable
+## Stage 1 — Exceptional CFG per callable · Level 3 (intraprocedural)
 
 From the callable's AST, build a statement-level CFG (basic blocks are an optional compression —
 statement-level is easier to verify and maps 1:1 to source spans):
@@ -81,7 +94,7 @@ Then compute def-use:
 syntactically reads it; a fixture with a loop-carried dependency (`x = x + 1` in a loop) produces
 the loop-carried edge; shadowed variables in nested scopes do not leak edges across scopes.
 
-## Stage 4 — PDG assembly
+## Stage 4 — PDG assembly · Level 3 (intraprocedural) — the L3 gate
 
 Per callable: `PDG = CDG edges (stage 2) + DDG edges (stage 3)`, over the same
 `(signature, node_id)` nodes. Nothing new is computed — this stage is bookkeeping plus the gate:
@@ -92,7 +105,7 @@ this expected set down in the fixture's test — it is the single highest-value 
 level, and it is the gate that catches both missing control dependences and missing def-use
 edges.
 
-## Stage 5 — Points-to and the call-graph substrate
+## Stage 5 — Points-to and the call-graph substrate · Level 4 (interprocedural) begins here
 
 Interprocedural work needs two oracles, both **frozen** (read their answers; never fork their
 internals):
@@ -152,7 +165,7 @@ Stitch the PDGs with the interprocedural edges (Horwitz–Reps–Binkley):
 `(signature, node_id)` endpoints, arity match, at least one SUMMARY edge for a known transitive
 flow, and the whole `program_graphs` section validates against the SDK models.
 
-## Stage 8 — Clients and the CPG
+## Stage 8 — Clients and the CPG · Level 4
 
 - **Slicing and taint** as SDG queries (`dataflow-graphs.md § Client analyses`) — the two-phase
   HRB traversal for context-sensitive slices; labeled reachability with sanitizer blocking for
@@ -169,7 +182,7 @@ plus: the Cypher snapshot with graphs enabled loads clean into an empty Neo4j an
 
 ## Parallel execution model
 
-Level 3 is compute-heavy but its dependency structure is explicit — exploit it. The units of
+Levels 3–4 are compute-heavy but the dependency structure is explicit — exploit it. The units of
 work and their independence, per phase:
 
 | Phase | Unit of work | Parallelism |
@@ -219,7 +232,7 @@ per file, so the `-j/--jobs` flag (`cli-contract.md`) is not level-3-specific.
 
 ## Fixture minimums (extends `testing-and-validation.md § 1`)
 
-The level-3 fixture must contain, each with a named expected result in the tests:
+The levels 3–4 fixture must contain, each with a named expected result in the tests:
 
 - an `if/else` and a loop (control dependence + loop-carried DDG edge);
 - an early return and a throw/panic/raise with a handler (exceptional CFG + multi-exit);
@@ -239,5 +252,12 @@ The stages are deliberately sequenced so each is testable before the next exists
 dominance (2) need no dataflow; def-use (3) needs no interprocedural anything; the PDG slice gate
 (4) is the checkpoint that the intraprocedural half is *right*; points-to (5) can start as a
 type-based stub; summaries (6–7) are where the whole-program complexity lives; clients (8) are
-queries. An MVP that stops after Stage 4 + a call-graph-only taint approximation is already
-useful and shippable behind the flag — stage the rest as the issue template's PR ladder.
+queries.
+
+**Stage 4 is a shippable level, not just a checkpoint.** Stages 1–4 *are* level 3 — a complete,
+releasable capability (`-a 3`: CFG/PDG per function, the whole intraprocedural graph surface)
+that needs no points-to oracle. Ship it, tag it, expose it in the SDK, and only then start level 4
+(Stages 5–8, `-a 4`) when the oracle is chosen. This is the natural MVP boundary: L3 gives you
+structural queries and intraprocedural slicing today; L4 adds whole-program taint when the
+substrate is ready. Stage the two as separate releases per the issue template's PR ladder (PR C =
+L3; PR D onward = L4).

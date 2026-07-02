@@ -81,16 +81,16 @@ tooling choices genuinely differ per language and the user owns them.
   - `references/neo4j-projection.md` — the **optional second output surface**: projecting the
     same IR into a Neo4j graph via `--emit neo4j` (Cypher snapshot + live Bolt push). Every
     mature analyzer ships it; add it once level-1 JSON is solid.
-  - `references/dataflow-graphs.md` — the **level-3 contract**: native CFG/DFG/PDG/SDG (+ the
-    CPG projection), node identity, `program_graphs` emission, parity clause, and verification
-    gates. Read before any dataflow work.
-  - `references/dataflow-construction.md` — the level-3 **method**: the stage-by-stage
-    algorithm ladder (CFG lowering → dominance → def-use → PDG → summaries → SDG → clients),
-    per-language lowering checklists, gates, and fixture minimums.
-  - `references/dataflow-substrate-menu.md` — the level-3 counterpart of the tooling menu:
-    per-language CFG / def-use / points-to substrate decisions.
+  - `references/dataflow-graphs.md` — the **levels 3–4 contract**: native intraprocedural
+    CFG/DFG/PDG (L3) and interprocedural SDG + clients (L4), the CPG projection, node identity,
+    `program_graphs` emission, parity clause, and verification gates. Read before any dataflow work.
+  - `references/dataflow-construction.md` — the **method**: the stage-by-stage algorithm ladder,
+    split at the L3/L4 seam (Stages 1–4 intraprocedural / AST-only; Stages 5–8 interprocedural /
+    oracle-backed), per-language lowering checklists, gates, and fixture minimums.
+  - `references/dataflow-substrate-menu.md` — the dataflow counterpart of the tooling menu:
+    per-language CFG / def-use / points-to substrate decisions (the points-to slot is the L4 gate).
   - `references/dataflow-issue-template.md` — the planning template a language instantiates
-    (goals, locked substrate decisions, staged PRs, caveats) before building level 3.
+    (goals, locked substrate decisions, staged PRs, caveats) before building levels 3–4.
   - `references/testing-and-validation.md` — **all analyzer-side verification criteria, fixture
     design rules, and definitions of done.** Read before writing any tests. (SDK-side testing
     is the frontend skill's `references/sdk-testing.md`.)
@@ -317,7 +317,7 @@ schema` for the static `schema.neo4j.json` contract. Build it as a modular `neo4
 `SCHEMA_DECISIONS.md` node kinds → node labels; identity-only call edges → `CALLS`). The SDK's
 Neo4j backend (frontend skill) reconstructs the canonical model from this graph, so the node
 families and `--app-name` anchor must match. **The graph is always full-depth:** analysis levels
-gate the JSON path only — `--emit neo4j` runs at maximum implemented depth (once level 3 exists,
+gate the JSON path only — `--emit neo4j` runs at maximum implemented depth (once levels 3–4 exist,
 the complete SDG/CPG, unconditionally), and combining `-a`/`--graphs` with it is an explicit
 error (`neo4j-projection.md § Depth rule`). Leave the projection out only if the user explicitly
 scopes to JSON-only; otherwise it's a standard deliverable of the CLI/packaging stage.
@@ -331,17 +331,24 @@ into the resolver graph by `(source, target)` with provenance union. (For a lang
 graph is *only* available this way — e.g. Java/WALA — this stage is where that call graph lives,
 regardless of the depth choice.)
 
-### (Optional) Level 3: native dataflow graphs
-A separate, later body of work — never part of the initial language bring-up. When the user asks
-for dataflow, slicing, or taint ("CFG/PDG/SDG", "reachability", "what does this value affect"),
-plan it with `references/dataflow-issue-template.md` (one epic issue, staged PRs), decide the
-substrate slots from `references/dataflow-substrate-menu.md` (confirmed with the user, recorded
-in the README's *Architecture & Tooling*), and build stage by stage per
-`references/dataflow-construction.md` against the contract in `references/dataflow-graphs.md`.
-The rules that bind: everything is **native and in-process**; graphs are keyed by
-`(signature, node_id)` on the same `signatureOf()`; each stage's gate passes before the next
-stage starts; `-a 1`/`-a 2` stay untouched; the **SDG is the core artifact** (clients query it),
-and the CPG is only its Neo4j projection — skip the CPG if the Neo4j surface isn't in scope.
+### (Optional) Levels 3–4: native dataflow graphs
+A separate, later body of work — never part of the initial language bring-up, and itself **two
+shippable levels**. When the user asks for dataflow, slicing, or taint ("CFG/PDG/SDG",
+"reachability", "what does this value affect"), plan it with
+`references/dataflow-issue-template.md` (one epic issue, staged PRs), decide the substrate slots
+from `references/dataflow-substrate-menu.md` (confirmed with the user, recorded in the README's
+*Architecture & Tooling*), and build stage by stage per `references/dataflow-construction.md`
+against the contract in `references/dataflow-graphs.md`.
+
+The **L3/L4 split is the key planning decision**: **level 3** (`-a 3`, intraprocedural CFG/DFG/PDG
+per function) is AST-only, per-callable parallel, and shippable with *no points-to oracle* — ship
+it first. **Level 4** (`-a 4`, the interprocedural SDG + taint/slicing clients) is the heavier
+tier that needs the oracle from the substrate menu and the whole-program summary fixpoint — add it
+once the oracle lands. The rules that bind both: everything is **native and in-process**; graphs
+are keyed by `(signature, node_id)` on the same `signatureOf()`; each stage's gate passes before
+the next; `-a 1`/`-a 2` stay untouched and `-a 3` must not pay L4's cost; the **SDG (L4) is the
+core artifact** (clients query it), and the CPG is only its Neo4j projection — skip the CPG if the
+Neo4j surface isn't in scope.
 
 ### Write the analyzer README (last build step)
 The analyzer's `codeanalyzer-<lang>/README.md` already holds the **Architecture & Tooling**
