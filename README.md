@@ -1,49 +1,80 @@
 # cldk-skillset
 
-A Claude Code **plugin** bundling agent skills for *extending* and *maintaining*
-[CodeLLM-DevKit (CLDK)](https://github.com/codellm-devkit) — adding a new language, wiring it into
-the SDKs, and keeping the analyzer/SDK contract in lockstep.
+A [Claude Code](https://claude.com/claude-code) **plugin** of agent skills for extending
+[CodeLLM-DevKit (CLDK)](https://github.com/codellm-devkit): build a new language's backend
+analyzer, wire it into the SDKs, and grow it through the analysis levels — symbol table, call
+graph, and native dataflow.
 
-The plugin is defined by [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json) and published
-through [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json). Each skill lives
-under `skills/<name>/` with a `SKILL.md` describing when and how to invoke it, plus `references/`
-holding the detailed specs the skill reads on demand.
+## Install
+
+```
+/plugin marketplace add codellm-devkit/developer-skillset
+/plugin install cldk-skillset@cldk-skillset
+```
+
+Then just describe the task — *"add Rust support to CLDK"*, *"build a codeanalyzer for Kotlin"*,
+*"wire the Go analyzer into python-sdk"*, *"add dataflow analysis to codeanalyzer-go"* — and the
+matching skill triggers.
 
 ## Skills
 
-Adding a language to CLDK spans **two surfaces**, so the work is split into two focused skills you
-run back to back — build and ship the analyzer, then bind it into the SDK(s).
-
 ### [`codeanalyzer-backend`](skills/codeanalyzer-backend/)
 
-Build the **backend analyzer** `codeanalyzer-<lang>`: parse a new language and emit the canonical
-`analysis.json` (symbol table + resolver-based call graph), then package and release it as a thin
-`codeanalyzer-<lang>` PyPI distribution (+ GitHub Release binaries + a Homebrew formula). The
-defining move is a guided, informed decision about the analyzer's backend tooling (parser,
-resolver, enrichment, packaging), then scaffolding a **modular** analyzer to a validated level-1
-analysis. Also covers the optional **Neo4j projection** (`--emit neo4j`) — a Cypher snapshot / live
-Bolt push of the same IR — and all analyzer-side testing gates and definitions of done.
+Build and release the **backend analyzer** `codeanalyzer-<lang>` for a new language: a guided
+decision on the backend tooling (parser, resolver, packaging), then a **modular** analyzer
+scaffolded and verified stage by stage, shipped as a thin PyPI wheel + GitHub Release binaries +
+Homebrew formula via tag-triggered releases.
 
-Anchored on [`../codeanalyzer-java`](../codeanalyzer-java),
-[`../codeanalyzer-python`](../codeanalyzer-python), and
-[`../codeanalyzer-typescript`](../codeanalyzer-typescript).
+The analysis levels it owns:
+
+| Level | What | Cost |
+| --- | --- | --- |
+| 1 | Symbol table + resolver-based call graph → canonical `analysis.json` | Cheap, always built |
+| 2 | Framework-based call-graph enrichment (Joern/WALA/SVF) | Heavy, flag-gated |
+| 3 | **Native dataflow**: CFG/DFG/PDG/SDG built from the language's own AST, with slicing and taint as queries | Heavy, in-process, flag-gated |
+
+Also covered: the optional **Neo4j projection** (`--emit neo4j` — Cypher snapshot or live Bolt
+push, with the CPG as the level-3 overlay), deterministic parallelism (`-j`), testing gates and
+fixture design, and the analyzer README + `CLAUDE.md` agent guide as standing deliverables.
+
+Key references: [`backend-recipe.md`](skills/codeanalyzer-backend/references/backend-recipe.md),
+[`tooling-menu.md`](skills/codeanalyzer-backend/references/tooling-menu.md),
+[`canonical-schema.md`](skills/codeanalyzer-backend/references/canonical-schema.md),
+[`dataflow-graphs.md`](skills/codeanalyzer-backend/references/dataflow-graphs.md) (+ its
+construction / substrate-menu / issue-template companions),
+[`neo4j-projection.md`](skills/codeanalyzer-backend/references/neo4j-projection.md),
+[`packaging-and-release.md`](skills/codeanalyzer-backend/references/packaging-and-release.md).
 
 ### [`cldk-sdk-frontend`](skills/cldk-sdk-frontend/)
 
-Wire an existing `codeanalyzer-<lang>` into a CLDK **frontend SDK** so the language is reachable
-through the user-facing API — `CLDK.<lang>(project_path=..., backend=...)` in the Python SDK today
-(with the legacy `CLDK(language="<lang>").analysis(...)` kept as a compat shim), and the TypeScript
-SDK the same way. The SDK selects along two axes — **language** (a `CLDK.<lang>()` factory method)
-and **backend** (a config object: the local `codeanalyzer` backend, or an optional read-only
-**Neo4j** backend that reconstructs the same model from a graph) — both behind a per-language
-`<Lang>AnalysisBackend` ABC. The skill guides an interactive design of the facade's query surface,
-then encodes it into each SDK with models that validate against the analyzer's `analysis.json`.
+Wire an existing analyzer into a CLDK **frontend SDK** — today the
+[Python SDK](https://github.com/codellm-devkit/python-sdk): the `CLDK.<lang>()` factory method, a
+per-language backend ABC with a local `codeanalyzer` backend and an optional read-only **Neo4j**
+backend, Pydantic models that validate against the analyzer's `analysis.json`, and mocked + E2E +
+backend-contract tests. The facade's query surface is designed interactively (every divergence
+decided with you), then encoded per SDK.
 
-Anchored on [`../python-sdk`](../python-sdk).
+## Typical flow
 
-## Using it
+1. **`codeanalyzer-backend`** → a working, released `codeanalyzer-<lang>` (level 1, optionally
+   level 2) with a validated schema contract.
+2. **`cldk-sdk-frontend`** → the language reachable via `CLDK.<lang>(project_path=...)`.
+3. When ready for dataflow: instantiate
+   [`dataflow-issue-template.md`](skills/codeanalyzer-backend/references/dataflow-issue-template.md)
+   as the level-3 epic on the analyzer repo (worked example:
+   [codeanalyzer-go#3](https://github.com/codellm-devkit/codeanalyzer-go/issues/3)) and build it
+   stage by stage.
 
-Install the plugin from the marketplace, then invoke a skill by name (or just describe the task —
-"add Go support to CLDK", "wire the analyzer into python-sdk") and Claude Code will trigger the
-matching skill. Precondition for `cldk-sdk-frontend`: a working, schema-conformant
-`codeanalyzer-<lang>` produced by `codeanalyzer-backend` already exists.
+## Layout
+
+```
+.claude-plugin/          # plugin + marketplace manifests
+skills/
+  codeanalyzer-backend/  # SKILL.md + references/ (the specs the skill reads on demand)
+  cldk-sdk-frontend/     # SKILL.md + references/
+```
+
+Reference analyzers this skillset anchors on:
+[`codeanalyzer-java`](https://github.com/codellm-devkit/codeanalyzer-java),
+[`codeanalyzer-python`](https://github.com/codellm-devkit/codeanalyzer-python),
+[`codeanalyzer-typescript`](https://github.com/codellm-devkit/codeanalyzer-typescript).
