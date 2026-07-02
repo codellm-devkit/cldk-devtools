@@ -10,10 +10,10 @@ are the references.
 | `-i, --input <path>` | Project root to analyze | Required |
 | `-o, --output <dir>` | Directory to write `analysis.json` | **When omitted, print compact JSON to stdout.** The facade relies on this |
 | `-f, --format <json\|msgpack>` | Serialization format | Default `json` |
-| `-a, --analysis-level <1\|2\|3>` | 1 = symbol table only; 2 = + **resolver-based** call graph (still cheap); 3 = + **native dataflow graphs** (heavy; `dataflow-graphs.md`) | Java style. Python instead uses toggles; either is fine as long as the cheap symbol-table-only run is the default |
+| `-a, --analysis-level <1\|2\|3\|4>` | 1 = symbol table; 2 = + **resolver** call graph (cheap); 3 = + **intraprocedural** CFG/DFG/PDG (heavy, AST-only); 4 = + **interprocedural** SDG + clients (heaviest, needs points-to oracle) — `dataflow-graphs.md` | Java style. Python instead uses toggles; either is fine as long as the cheap symbol-table-only run is the default |
 | `--joern` (or similar) | Add the **framework-based** (heavy) call graph | Separate toggle, **not** an `-a` level; off by default |
-| `--graphs <cfg,dfg,pdg,sdg>` | Scope which level-3 graphs are emitted | Only meaningful with `-a 3` (default: all). Strict flag validation |
-| `--graph-field-depth <k>` | Access-path k-limit for level-3 dataflow | Default 3; mandatory for termination |
+| `--graphs <cfg,dfg,pdg,sdg>` | Scope which dataflow graphs are emitted within the level | `cfg,dfg,pdg` need `-a 3`; `sdg` needs `-a 4` (requesting `sdg` at `-a 3` is a flag error). Default: all rungs at/below the level. Strict flag validation |
+| `--graph-field-depth <k>` | Access-path k-limit for dataflow (L3/L4) | Default 3; mandatory for L4 fixpoint termination |
 | `-t, --target-files <paths>` | Restrict analysis to specific files | Incremental analysis |
 | `--skip-tests / --include-tests` | Skip test trees | Default skip |
 | `--eager / --lazy` | Force clean rebuild vs reuse cache | Default lazy |
@@ -65,8 +65,12 @@ Two orthogonal axes, don't conflate them:
   the default.
 - **A separate flag** (`--joern`/…) turns on the **heavy, framework-based (level-2)**
   backend. Off by default so the cheap path stays cheap.
-- **`-a 3`** adds the **native dataflow graphs** (CFG/PDG/SDG — `dataflow-graphs.md`), scoped by
-  `--graphs`. Implies `-a 2`. Heavy but in-process; still orthogonal to the framework toggle.
+- **`-a 3`** adds the **native intraprocedural graphs** (CFG/DFG/PDG per function —
+  `dataflow-graphs.md`), scoped by `--graphs`. Implies `-a 2`. Heavy but AST-only and per-callable
+  parallel; needs no points-to oracle.
+- **`-a 4`** adds the **interprocedural SDG** and clients (slicing, taint). Implies `-a 3`. The
+  heaviest tier — the only one that needs the points-to oracle and the whole-program summary
+  fixpoint. Both stay orthogonal to the framework toggle.
 - **Levels gate the JSON path only.** With `--emit neo4j` the analyzer always runs at maximum
   implemented depth and projects the full SDG; passing `-a`/`--graphs` alongside it is an
   explicit error (`neo4j-projection.md § Depth rule`).

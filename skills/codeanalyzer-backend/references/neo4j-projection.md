@@ -31,8 +31,8 @@ must run without `-i`; every other target requires `-i`.
 
 **Analysis levels do not apply to the graph surface.** `--emit neo4j` runs the analyzer at its
 **maximum implemented depth** and projects everything — symbol table, call graph, and (once
-level 3 exists) the complete CFG/PDG/SDG, i.e. the full CPG. There is no such thing as a
-"symbol-table-only" graph:
+levels 3–4 exist) the complete CFG/PDG (L3) and SDG (L4), i.e. the full CPG. There is no such
+thing as a "symbol-table-only" graph:
 
 - A queryable graph database is a whole-picture artifact — a partial graph silently answers
   queries wrongly ("no path from source to sink" when the dataflow edges were simply never
@@ -46,7 +46,7 @@ validation requirements` — never silently ignore a flag), e.g.:
 ```
 error: --analysis-level does not apply to --emit neo4j; the graph is always projected at full depth
 ```
-This also means `--emit neo4j` inherits level-3 cost once dataflow exists — that is by design;
+This also means `--emit neo4j` inherits full L3+L4 cost once dataflow exists — that is by design;
 the cheap path is `--emit json` at `-a 1`.
 
 ## Modular structure (a `neo4j/` subpackage, mirroring the analyzer's modularity rules)

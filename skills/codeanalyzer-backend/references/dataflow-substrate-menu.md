@@ -1,17 +1,19 @@
-# Dataflow substrate menu (per-language, level 3)
+# Dataflow substrate menu (per-language, levels 3–4)
 
-The level-3 counterpart of `tooling-menu.md`: the **native substrate decisions** each language
+The dataflow counterpart of `tooling-menu.md`: the **native substrate decisions** each language
 must make before building the graphs in `dataflow-construction.md`. Like the level-1 menu,
 pre-fill a recommendation per slot and confirm with the user (`AskUserQuestion`) — these are
 load-bearing, locked decisions recorded in the analyzer README's *Architecture & Tooling*
 section.
 
-**The three slots:**
+**The three slots** — the first two are **level 3**, the third is the **level-4 gate** (nothing
+interprocedural runs without it):
 
-1. **CFG source** — hand-build from the AST, or use an ecosystem library?
-2. **Def-use source** — hand-build reaching definitions, or read an SSA IR?
-3. **Points-to oracle** — which in-process engine answers *may-alias* / *dispatch targets*?
-   (An MVP may stub this with type-based aliasing and upgrade later — stage it as its own PR.)
+1. **CFG source** (L3) — hand-build from the AST, or use an ecosystem library?
+2. **Def-use source** (L3) — hand-build reaching definitions, or read an SSA IR?
+3. **Points-to oracle** (L4) — which in-process engine answers *may-alias* / *dispatch targets*?
+   This is what separates the two levels: L3 needs slots 1–2 only; L4 cannot start without slot 3.
+   (An MVP may stub it with type-based aliasing and upgrade later — stage it as its own PR.)
 
 Whatever is chosen: the oracle is **frozen** (read its solved state, never fork its solver), and
 an **identity-mapping layer** onto canonical `(signature, node_id)` keys is mandatory and on the
@@ -30,7 +32,7 @@ critical path (`dataflow-construction.md § Stage 5`).
 
 ## Choosing where to start (multi-language rollout)
 
-Recommended order when rolling level 3 across the fleet: **Go first** (simplest lowering
+Recommended order when rolling dataflow (L3 then L4) across the fleet: **Go first** (simplest lowering
 semantics — structured control flow, no exceptions, explicit pointers — plus stdlib answer keys
 for differential testing), **TypeScript second** (the substrate spike and staged plan already
 exist in codeanalyzer-typescript issue #2), **Java third** (mostly WALA exposure),

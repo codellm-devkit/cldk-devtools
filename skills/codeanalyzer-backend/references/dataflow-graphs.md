@@ -1,29 +1,40 @@
-# Dataflow graphs (level 3) — the contract
+# Dataflow graphs (levels 3–4) — the contract
 
-The third analysis level: **native, whole-program dependence graphs** — CFG, DFG, PDG, SDG, and
-the CPG projection — built from the language's own AST in the analyzer's own ecosystem. This file
-is the **contract** (what the graphs are, how they're keyed, emitted, and verified). The
-construction method lives in `dataflow-construction.md`; the per-language engine decisions in
+The two dataflow levels: **native dependence graphs** built from the language's own AST in the
+analyzer's own ecosystem — **level 3 intraprocedural** (CFG, DFG, PDG per function) and **level 4
+interprocedural** (the whole-program SDG, plus client queries: slicing, taint). This file is the
+**contract** (what the graphs are, how they're keyed, emitted, and verified). The construction
+method lives in `dataflow-construction.md`; the per-language engine decisions in
 `dataflow-substrate-menu.md`; the issue template for planning the work in
 `dataflow-issue-template.md`.
 
-**Native is the defining constraint.** Level 3 is built from the language's own AST/compiler API
-(ts-morph/Babel for TS, `go/ast` for Go, tree-sitter+Jedi-adjacent for Python, JavaParser/WALA IR
-for Java) — *not* by shelling out to an external engine like Joern. Those engines remain the separate
-**level-2 framework axis** and are unchanged by this contract. A points-to *oracle* library that
-runs in-process in the analyzer's own language (Jelly, WALA, `go/ssa`) counts as native.
+**Native is the defining constraint.** Levels 3–4 are built from the language's own AST/compiler
+API (ts-morph/Babel for TS, `go/ast` for Go, tree-sitter+Jedi-adjacent for Python, JavaParser/WALA
+IR for Java) — *not* by shelling out to an external engine like Joern. Those engines remain the
+separate **level-2 framework axis** and are unchanged by this contract. A points-to *oracle*
+library that runs in-process in the analyzer's own language (Jelly, WALA, `go/ssa`) counts as
+native.
 
 ## Position in the level ladder
 
-| Level | What | Cost | Flag |
-| --- | --- | --- | --- |
-| 1 | Symbol table + resolver call graph | Cheap | `-a 1` / `-a 2` (default 1) |
-| 2 | Framework-based call-graph enrichment (Joern/WALA) | Heavy, external | own toggle, off by default |
-| **3** | **Native CFG/DFG/PDG/SDG + client queries (slicing, taint)** | Heavy, in-process | `-a 3` (+ `--graphs` selector) |
+The levels are **progressive population of one structure** (the containment tree + typed edge
+overlays), each additive over the last — `L1 ⊆ L2 ⊆ L3 ⊆ L4`, superset modulo null-refinement.
+The seam between 3 and 4 is real, not cosmetic: it is the **substrate + cost boundary** — L3 needs
+nothing but the AST and is embarrassingly parallel per callable; L4 needs the points-to oracle and
+the whole-program summary fixpoint.
 
-`-a 3` implies `-a 2`'s resolver call graph (the SDG needs it). The framework toggle stays
-orthogonal — its edges merge into the call graph with provenance, exactly as at level 2. The
-cheap path stays cheap: **nothing at level 3 may run unless requested.**
+| Level | What | Grows | Cost / substrate | Flag |
+| --- | --- | --- | --- | --- |
+| 1 | Symbol table + resolver call graph | tree to `function` depth + `calls` edges | Cheap, AST + resolver | `-a 1` / `-a 2` (default 1) |
+| 2 | Framework-based call-graph enrichment (Joern/WALA) | more `calls` edges (provenance-merged) | Heavy, external | own toggle, off by default |
+| **3** | **Native intraprocedural graphs (CFG / DFG / PDG per function)** | tree *below* `function` + within-function edges | Heavy but **AST-only, per-callable parallel** | `-a 3` (+ `--graphs`) |
+| **4** | **Native interprocedural graph (SDG) + clients (slicing, taint)** | cross-function `PARAM_*` / `SUMMARY` edges | Heaviest: **needs the points-to oracle** + summary fixpoint | `-a 4` |
+
+`-a 3` implies `-a 2`'s resolver call graph; `-a 4` implies `-a 3` (the SDG stitches L3's PDGs).
+The framework toggle stays orthogonal — its edges merge into the call graph with provenance,
+exactly as at level 2. The cheap path stays cheap: **nothing at level 3 or 4 runs unless
+requested.** A language can ship L3 with **zero oracle work** and add L4 when its points-to
+substrate (`dataflow-substrate-menu.md`) lands.
 
 The levels gate the **JSON path only**. When the output target is the graph (`--emit neo4j`),
 levels don't apply: the analyzer runs at maximum implemented depth and projects the **full SDG**
@@ -31,8 +42,8 @@ unconditionally (`neo4j-projection.md § Depth rule`).
 
 ## The graph ladder (definitions and edge vocabulary)
 
-Each graph builds on the previous. All are **per-function** except the SDG and CPG, which are
-whole-program.
+Each graph builds on the previous. Graphs **1–3 are level 3** (per-function, AST-only); the
+**SDG (4) is level 4** (whole-program, needs the oracle), as is the CPG projection.
 
 1. **CFG (control-flow graph)** — statement/basic-block-level nodes, one graph per callable, with
    a single synthetic `ENTRY` and single synthetic `EXIT`. Edges are `CFG_NEXT` with a `kind`
@@ -44,9 +55,10 @@ whole-program.
    definitions or SSA (SSA is an implementation detail; the contract is def-use edges).
 3. **PDG (program dependence graph)** — per-function union of control dependence (`CDG` edges,
    computed from the post-dominance frontier) and data dependence (`DDG` edges).
-4. **SDG (system dependence graph)** — the whole-program graph: all PDGs stitched together at
-   call sites via `CALL`, `PARAM_IN`, `PARAM_OUT`, and transitive `SUMMARY` edges
-   (Horwitz–Reps–Binkley). Global/module state is modeled as extra parameters. This is the graph
+4. **SDG (system dependence graph)** — **level 4**, the whole-program graph: all PDGs stitched
+   together at call sites via `CALL`, `PARAM_IN`, `PARAM_OUT`, and transitive `SUMMARY` edges
+   (Horwitz–Reps–Binkley). Global/module state is modeled as extra parameters. This is the first
+   rung that needs the points-to oracle and the interprocedural summary fixpoint, and the graph
    client analyses (slicing, taint) query.
 
 ## Node identity (the invariant that makes everything joinable)
@@ -68,17 +80,19 @@ function's emitted graph.
 
 ## Emission — `analysis.json` sections and flags
 
-Graphs are emitted as an **optional top-level section**, present only at level 3, preserving the
-facade invariant that `analysis.json` is the single facade-visible output:
+Graphs are emitted as an **optional top-level section**, present from level 3, preserving the
+facade invariant that `analysis.json` is the single facade-visible output. The `functions` map
+(CFG + PDG) is the **level-3** payload; `sdg_edges` is added at **level 4**:
 
 ```jsonc
 {
   "symbol_table": { ... },
   "call_graph": [ ... ],
-  "program_graphs": {                    // only when -a 3
+  "program_graphs": {                    // functions{}: -a 3 and up; sdg_edges: -a 4
     "schema_version": "1.0.0",
+    "max_level": 3,                      // highest level actually populated here (3 or 4)
     "k_limit": 3,
-    "functions": {
+    "functions": {                       // LEVEL 3 — per-function, AST-only
       "<signature>": {
         "cfg":  { "nodes": [{ "id": 0, "kind": "entry", "start_line": ... }, ...],
                   "edges": [{ "source": 0, "target": 1, "kind": "fallthrough" }, ...] },
@@ -86,19 +100,23 @@ facade invariant that `analysis.json` is the single facade-visible output:
                             { "source": 2, "target": 7, "type": "DDG", "var": "x.f" }, ...] }
       }
     },
-    "sdg_edges": [                       // cross-function only; intra-function edges live in pdg
+    "sdg_edges": [                       // LEVEL 4 — cross-function only; intra-function edges live in pdg
       { "source": { "signature": "...", "node": 12 },
         "target": { "signature": "...", "node": 0 },
         "type": "PARAM_IN", "var": "arg0" }
     ]
   },
-  "taint_flows": [ ... ]                 // optional client-analysis output, see below
+  "taint_flows": [ ... ]                 // LEVEL 4 client-analysis output, see below
 }
 ```
 
-- `--graphs cfg,dfg,pdg,sdg` scopes which sections are emitted (default at `-a 3`: all). DFG is
-  emitted *as* the `DDG` edges of the PDG — there is no separate `dfg` section; requesting `dfg`
-  without `pdg` emits a PDG with only `DDG` edges.
+- The **level split is a data split**: `-a 3` emits `functions` (CFG/PDG) and *omits* `sdg_edges`
+  and `taint_flows`; `-a 4` adds them. `max_level` declares which was populated so a consumer
+  reads it instead of sniffing for `sdg_edges`.
+- `--graphs cfg,dfg,pdg,sdg` further scopes *within* the requested level (default: all rungs at or
+  below the level). `sdg` requires `-a 4`; requesting it at `-a 3` is a flag error. DFG is emitted
+  *as* the `DDG` edges of the PDG — there is no separate `dfg` section; requesting `dfg` without
+  `pdg` emits a PDG with only `DDG` edges.
 - Unrecognized `--graphs` values follow the **flag-validation rule** (`cli-contract.md`): explicit
   non-zero error, never silent fallback.
 - The CPG is **Neo4j-only**, and the graph surface is **level-agnostic**: `--emit neo4j` always
@@ -146,14 +164,18 @@ unmodeled natives) is **documented per language** in the analyzer README, not si
 
 Each rung has a gate; do not build the next rung until the current one passes:
 
-| Gate | Core assertion |
-| --- | --- |
-| CFG | Every node maps to a real source span; single ENTRY/EXIT; every node reachable from ENTRY and reaching EXIT; exceptional edges present for every throwing construct in the fixture |
-| Dominance | Post-dominator tree well-formed (unique root = EXIT; infinite loops handled via synthetic edge) |
-| PDG | CDG edges match hand-computed control dependence on the fixture; every DDG edge connects a real def to a real use of the same access path |
-| SDG | No dangling `(signature, node_id)` endpoints; PARAM_IN/OUT arity matches the callable's parameters; SUMMARY edges exist for at least one transitive flow in the fixture |
-| Slice | Backward slice of a named fixture variable equals the hand-computed expected node set — **exact**, not "non-empty" |
-| Taint | One known source→sink flow found; the same flow with a sanitizer on the path is reported `sanitized` |
+| Level | Gate | Core assertion |
+| --- | --- | --- |
+| 3 | CFG | Every node maps to a real source span; single ENTRY/EXIT; every node reachable from ENTRY and reaching EXIT; exceptional edges present for every throwing construct in the fixture |
+| 3 | Dominance | Post-dominator tree well-formed (unique root = EXIT; infinite loops handled via synthetic edge) |
+| 3 | PDG | CDG edges match hand-computed control dependence on the fixture; every DDG edge connects a real def to a real use of the same access path |
+| 4 | SDG | No dangling `(signature, node_id)` endpoints; PARAM_IN/OUT arity matches the callable's parameters; SUMMARY edges exist for at least one transitive flow in the fixture |
+| 4 | Slice | Backward slice of a named fixture variable equals the hand-computed expected node set — **exact**, not "non-empty" |
+| 4 | Taint | One known source→sink flow found; the same flow with a sanitizer on the path is reported `sanitized` |
+
+The **L3/L4 gate boundary** is the intraprocedural backward-slice: it is checkable *within* a
+single function (level 3 done), whereas the SDG/Slice/Taint gates need whole-program stitching
+(level 4). Ship L3 when its three gates pass; L4 waits on the oracle.
 
 The fixture minimums that make these gates meaningful (branches, loops, exception paths,
 closures, aliasing, recursion, a multi-file flow) are specified in
@@ -174,8 +196,9 @@ by the same `GraphRows`/writer machinery in `neo4j-projection.md`:
 
 ## Performance and incrementality rules
 
-- **Flag-gated, always.** Whole-program summary construction may be orders of magnitude slower
-  than level 1. `-a 1`/`-a 2` timings must be unaffected.
+- **Flag-gated, always.** Level 3 (per-function graphs) is heavy but parallel; level 4
+  (whole-program summary construction) may be orders of magnitude slower again. `-a 1`/`-a 2`
+  timings must be unaffected, and `-a 3` must not pay L4's summary/points-to cost.
 - **Summaries are content-hashed and cached** in `cache_dir` from day one, and every summary
   records the facts it depends on (callee summaries, points-to slices, model versions).
   Incremental re-analysis is *aspirational, not initial scope* — but recording dependency edges

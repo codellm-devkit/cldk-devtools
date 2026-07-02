@@ -1,6 +1,6 @@
-# Level-3 dataflow issue template
+# Levels 3–4 dataflow issue template
 
-The generalized planning template for adding native dataflow (level 3) to a
+The generalized planning template for adding native dataflow (levels 3–4) to a
 `codeanalyzer-<lang>`. It is the cross-language distillation of
 `codellm-devkit/codeanalyzer-typescript#2` (the TS instantiation), amended with the four things
 that issue predates: graphs as first-class schema artifacts, the CPG/Neo4j projection, the
@@ -15,25 +15,32 @@ staged PRs reference it.
 ---
 
 ```markdown
-Title: Level-3: native dataflow graphs (CFG/DFG/PDG/SDG/CPG) and taint analysis for <lang>
+Title: Levels 3–4: native dataflow graphs (CFG/DFG/PDG/SDG/CPG) and taint analysis for <lang>
 
 PROBLEM
 
 codeanalyzer-<lang> today emits the level-1 symbol table and resolver call
 graph<, plus level-2 framework enrichment via <framework> if applicable>. It has
 no dataflow: no CFG, no dependence graphs, no way to answer "what does this value
-affect" or "does user input reach this sink". This issue adds level 3 — native,
-whole-program dependence graphs built from <lang>'s own AST, per the skillset's
+affect" or "does user input reach this sink". This issue adds levels 3–4 — native
+dependence graphs built from <lang>'s own AST, per the skillset's
 dataflow-graphs.md contract — and exposes slicing and taint as queries over them.
+
+The two levels are shipped separately and the split is load-bearing:
+  - Level 3 (-a 3): intraprocedural CFG/DFG/PDG per function. AST-only, no
+    points-to oracle, per-callable parallel. Shippable on its own.
+  - Level 4 (-a 4): the interprocedural SDG + taint/slicing clients. Needs the
+    points-to oracle and the whole-program summary fixpoint. Builds on L3.
 
 Native is the constraint: everything runs in-process in the analyzer's own
 ecosystem. No external analysis engines, no subprocess to a foreign toolchain.
 
 GOALS (the contract, in one list)
 
-1. Emit CFG, PDG (CDG+DDG), and SDG as first-class sections of analysis.json
-   (`program_graphs`, schema_version'd, keyed by canonical (signature, node_id)),
-   gated by `-a 3` / `--graphs`.
+1. Level 3: emit CFG and PDG (CDG+DDG) per function as first-class sections of
+   analysis.json (`program_graphs.functions`, schema_version'd, keyed by
+   canonical (signature, node_id)), gated by `-a 3` / `--graphs`.
+1b. Level 4: add the SDG (`program_graphs.sdg_edges`), gated by `-a 4`.
 2. Project the CPG (AST+CFG+PDG overlay) through the existing Neo4j emitter as
    new node labels / edge types; additive schema.neo4j.json bump. The graph
    surface is level-agnostic: --emit neo4j always projects the full SDG;
@@ -144,14 +151,19 @@ STAGED PRs
 
   PR A  Prep: <remove dead code / licensing / dependency groundwork — whatever
         clears the path; independent of the oracle>.
+  --- LEVEL 3 (intraprocedural, no oracle — ship and tag before starting L4) ---
+  PR C  CFG + dominance + PDG, `program_graphs.functions` emission for cfg/pdg,
+        the slice gate green on the fixture; then per-callable parallel fan-out
+        (-j), differential-tested against --jobs 1. Ships as `-a 3`.
+  --- LEVEL 4 (interprocedural — needs the oracle) ---
   PR B  Oracle integration + identity mapping + call-graph merge with
         provenance; CI proves the solve runs in-process behind the flag.
-  PR C  Intraprocedural: CFG + dominance + PDG, `program_graphs` emission for
-        cfg/pdg, the slice gate green on the fixture; then per-callable
-        parallel fan-out (-j), differential-tested against --jobs 1.
+        (Independent of PR C; do it whenever the oracle is ready — it gates L4,
+        not L3.)
   PR D  Summaries: hammock regions, SCC fixpoint with k-limiting; SDG assembly;
-        sdg_edges emission; MVP taint over the call graph; then the ready-queue
-        wavefront over the SCC DAG, differential-tested against --jobs 1.
+        sdg_edges emission (`-a 4`); MVP taint over the call graph; then the
+        ready-queue wavefront over the SCC DAG, differential-tested against
+        --jobs 1.
   PR E  Models-as-data: JSON spec + Schema, default pack, precedence; taint_flows
         output + lazy witness paths; SDK models co-evolved.
   PR F  Points-to-backed (alias-aware) propagation via <oracle>; replace the
@@ -169,8 +181,9 @@ VERIFICATION / DEFINITION OF DONE
   - Fixture covers the full stage-1 lowering checklist for <lang> plus the
     shared fixture minimums (aliasing, SCC recursion, multi-file flow,
     sanitized + unsanitized taint pair).
-  - analysis.json with -a 3 validates against the shared SDK ProgramGraphs
-    models; parity clause holds (no renamed/repurposed shared vocabulary).
+  - analysis.json validates against the shared SDK ProgramGraphs models at both
+    -a 3 (functions{}) and -a 4 (+ sdg_edges); parity clause holds (no
+    renamed/repurposed shared vocabulary); L1 ⊆ ... ⊆ L4 superset gate passes.
   - Cypher snapshot with graphs loads clean into empty Neo4j; CFGNode count
     matches JSON; no dangling edges (deferred-edge gate).
   - --jobs N output byte-identical to --jobs 1 on the fixture (determinism
