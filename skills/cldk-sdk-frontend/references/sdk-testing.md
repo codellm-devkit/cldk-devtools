@@ -31,7 +31,7 @@ Fixture location: `tests/resources/<lang>/`.
 Location: `tests/analysis/<lang>/test_<lang>_analysis.py`
 
 **Pattern:** monkeypatch the wrapper's `_run_and_parse()` (or equivalent) to return a
-pre-built `<Lang>Application` from a fixture JSON. Tests never invoke the binary.
+pre-built `AnalysisPayload` (the v2 envelope) from a fixture JSON. Tests never invoke the binary.
 
 ```python
 @pytest.fixture

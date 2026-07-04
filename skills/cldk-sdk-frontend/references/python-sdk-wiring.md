@@ -93,7 +93,8 @@ The facade is thin; the real work is the **backend ABC** and its implementations
 - `codeanalyzer/codeanalyzer.py` — the **local** backend `<Lang>Codeanalyzer(<Lang>AnalysisBackend)`:
   - **Subprocess pattern**: build the CLI args (the **codeanalyzer-backend** skill's
     `cli-contract.md`), `subprocess.run` the binary with `-o <cache_subdir>`, read
-    `analysis.json`, validate into `<L>Application`. Resolve the binary (bundled artifact like
+    `analysis.json`, validate into `AnalysisPayload` (the v2 envelope; `.application` is the tree).
+    Resolve the binary (bundled artifact like
     the Java JAR, or `$CODEANALYZER_<LANG>_BIN` / `codeanalyzer_<lang>.bin_path()` like TS, or
     `shutil.which` — see *Common pitfalls*). Mirrors `cldk/analysis/java/codeanalyzer/`.
   - **In-process pattern** (Python analyzer only): `from codeanalyzer.core import Codeanalyzer`
@@ -102,7 +103,7 @@ The facade is thin; the real work is the **backend ABC** and its implementations
   - `__init__.py` — export the wrapper class.
 - `neo4j/` — **only if** the analyzer emits a graph: `neo4j_backend.py`
   (`<Lang>Neo4jBackend(<Lang>AnalysisBackend)`), `reconstruct.py` (bulk-fetch nodes/edges over
-  Bolt → rebuild `<L>Application`), `config.py`. Full spec in `references/neo4j-backend.md`.
+  Bolt → rebuild the shared `Application` tree), `config.py`. Full spec in `references/neo4j-backend.md`.
 - `__init__.py` — export `<Lang>Analysis`.
 
 ### 4. Factory method & dispatch — `cldk/core.py`
@@ -148,7 +149,7 @@ Full criteria and patterns in `sdk-testing.md`. The suite has three-to-four file
 the existing per-language dirs (`tests/analysis/java/`, `.../python/`, `.../typescript/`):
 
 - `test_<lang>_analysis.py` — **mocked** facade tests. Patch the wrapper's `_run_and_parse()`
-  (or equivalent) to return a pre-built `<Lang>Application` from a fixture JSON. Tests never
+  (or equivalent) to return a pre-built `AnalysisPayload` from a fixture JSON. Tests never
   invoke the binary. See `sdk-testing.md § 2` for minimum coverage.
 - `test_<lang>_backend_contract.py` — assert the concrete backend implements every method on
   the `<Lang>AnalysisBackend` ABC (see *The facade abstraction* below).
@@ -182,12 +183,12 @@ the existing per-language dirs (`tests/analysis/java/`, `.../python/`, `.../type
    read-only query vocabulary                          │
         │                                              ▼
         └─ backend: <Lang>AnalysisBackend (ABC)  ◀── isinstance(backend_cfg, Neo4jConnectionConfig)?
-                ├─ <Lang>Codeanalyzer   → runs binary/pkg → parses analysis.json → <L>Application
-                └─ <Lang>Neo4jBackend   → bulk Cypher fetch → reconstructs <L>Application (parity)
+                ├─ <Lang>Codeanalyzer   → runs binary/pkg → parses analysis.json → AnalysisPayload
+                └─ <Lang>Neo4jBackend   → bulk Cypher fetch → reconstructs Application (parity)
 ```
 
 The facade holds almost no logic: it forwards to `self.backend` and builds a couple of *derived*
-views (NetworkX graphs). Both backends produce the **same** `<L>Application`, so the facade code
+views (NetworkX graphs). Both backends produce the **same** shared `Application` tree, so the facade code
 above them is backend-agnostic.
 
 **Constructor contract.** Common params: `project_dir`, `analysis_level`, `target_files`,

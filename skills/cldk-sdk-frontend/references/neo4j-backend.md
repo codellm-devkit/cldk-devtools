@@ -22,8 +22,8 @@ is in the graph, deriving its effective level from what it finds (as `JNeo4jBack
 
 The whole point of the backend ABC (`<Lang>AnalysisBackend`) is that **both backends are
 interchangeable behind the facade**. The Neo4j backend achieves this by *reconstructing the
-canonical `<L>Application`* from the graph, then delegating to the same indexing/query logic the
-local backend uses. Concretely (mirror `cldk/analysis/java/neo4j/`):
+canonical shared `Application` tree* from the graph, then delegating to the same indexing/query
+logic the local backend uses. Concretely (the v2 `cldk/models/cpg/` model, not a per-language tree):
 
 ```
 <lang>/neo4j/
