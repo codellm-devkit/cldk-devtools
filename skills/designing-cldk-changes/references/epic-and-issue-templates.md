@@ -202,6 +202,73 @@ DEFINITION OF DONE
 
 (No `Part of` trailer — the sub-issue link carries the relationship.)
 
+## What a filled-in section looks like
+
+The template above gives the slots. This gives the shape of what goes in them — the part
+agents get wrong. Left alone, a filled-in work item runs 900–1000 words of restated context,
+narrated investigation and repeated findings. Reviewers stop reading, and the CAVEATS section
+— the one that makes the issue honest — is the part they never reach.
+
+### Budget
+
+Each section is capped. An issue that needs more is two issues.
+
+| Section | Budget |
+| --- | --- |
+| PROBLEM | 120 words, one or two paragraphs |
+| SCOPE BOUNDARY | 40 words |
+| GOALS | 8 checkboxes, one line each |
+| CAVEATS AND KNOWN RISKS | 5 bullets, 25 words each |
+| DEFINITION OF DONE | 6 bullets, one line each |
+| Whole body | 400 words, excluding code blocks and tables |
+
+Code blocks, tables and command output are outside the budget. They are evidence, and evidence
+is what the words are being spent to avoid restating.
+
+The budget binds structurally, not by counting: **PROBLEM is two paragraphs.** A third paragraph
+is evidence — put it in a code block or delete it. **A CAVEATS bullet is one sentence.** A bullet
+needing two sentences is two bullets, or it belongs in the spec.
+
+### Every claim carries its receipt
+
+A sentence in PROBLEM is one of three things, and nothing else:
+
+1. **A fact with a citation** — `file:line`, or a measured number with the command that produced it.
+2. **A consequence that follows from a cited fact** — one clause, in the same sentence.
+3. **A claim you have not verified, marked as such** — "unverified:", "mechanism implies, not tested:".
+
+Prefer showing to describing. A four-line output block replaces a paragraph and is checkable:
+
+```
+L1  body{"34:15"}  kind=call  callee=null
+L2  body{"34:15"}  kind=call  callee="can://…/@external/app.Account/__init__"
+```
+
+The third category is not optional politeness. An issue that states an inference as a measurement
+sends the next person to fix something that is not broken.
+
+### Register
+
+Compress with the `caveman-compress` rules — drop articles, filler, hedging, pleasantries and
+connective fluff; preserve code, paths, commands, identifiers, numbers and headings exactly.
+
+**Grammar stays correct.** Compression means deleting words, never mangling the ones that remain.
+"PyCG spells", not "PyCG say". "Two consequences", not "two bad thing". Subject-verb agreement and
+plurals cost nothing and their absence reads as noise in a public tracker.
+
+### Leave out
+
+Sections the template does not ask for. Most often: a summary that repeats PROBLEM, an
+"impact"/"why it matters" section arguing for work already agreed, a proposed implementation, and
+a narration of how the investigation went. The design belongs in the spec; the fix belongs in the
+PR; the search path belongs nowhere.
+
+### Before filing
+
+- Search existing issues first and link the duplicate instead of filing. Say what is new.
+- Re-read CAVEATS. If every bullet is a restatement of the goals with "must" in front, the section
+  is empty — name the substrate limit, the inherited unsoundness, or the thing that is unmeasured.
+
 ## `gh` invocations
 
 The epic is filed once, at design time. Children are filed **as each is picked up** — not all at
