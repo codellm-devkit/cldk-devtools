@@ -48,12 +48,12 @@ while asking.
         structural work       │ upkeep work
               ▼               ▼
    designing-cldk-changes   maintaining-cldk
-        │ spec + tracking record │  HARD GATE: escalate to design mode
-        ▼                        │  if the fix moves schema v2 / public API
-   codeanalyzer-backend          │
-        ▼                        │
-   cldk-sdk-frontend             │
-        ▼                        ▼
+        │ datamodel → spec + record │  HARD GATE: escalate to design mode
+        ▼                           │  if the fix moves schema v2 / public API
+   codeanalyzer-backend             │
+        ▼                           │
+   cldk-sdk-frontend                │
+        ▼                           ▼
            finishing-cldk-work  (verify → release → docs → close issues)
                               │
                     (future rung: cocoa)

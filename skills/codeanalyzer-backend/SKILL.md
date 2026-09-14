@@ -22,6 +22,12 @@ shape. Before you touch code:
   here. Report that the precondition fails, then checkpoint: `AskUserQuestion` whether to enter
   `designing-cldk-changes` now or stop here; do not invoke it unasked. Do not send work back merely
   because it is one issue rather than an epic.
+- The spec's **datamodel must have been decided with the user**, not merely written down. A spec is
+  the transcript of `designing-cldk-changes`' datamodel loop; a spec nobody walked is a proposal, and
+  building against one silently ratifies decisions the user never made. When the spec predates this
+  session, **say which schema decisions it locks and ask whether they still hold** before scaffolding.
+  If the user cannot place the loop that produced them, that is a re-entry to design mode, not a
+  formality to note in passing.
 - A **maintenance escalation** enters here only when it arrives **with its design decision already
   recorded** (a `.claude/SCHEMA_DECISIONS.md` entry + issue). A bare "add a field" with no design
   is not an entry — it goes back to design mode.

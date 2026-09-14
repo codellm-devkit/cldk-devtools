@@ -47,7 +47,22 @@ Siblings share the schema — a "one analyzer" change is rarely one repo. Name
 every affected repo now. This list is the input to the decomposition decision
 below — it is not itself a list of issues to file.
 
-## Design Loops
+## Design the Datamodel FIRST
+
+<HARD-GATE>
+The datamodel and schema are the first thing designed, and the last thing that may
+be assumed. No spec is drafted, no decomposition is proposed, no epic or issue is
+filed, and no release plan is discussed until the matching design loop has been run
+node by node WITH the user.
+</HARD-GATE>
+
+A spec that arrives with its schema decisions already made is not a design — it is a
+proposal wearing a design's clothes. Nobody reviews twenty pre-made decisions
+properly in one pass, and the ones the user would have changed are precisely the ones
+that get ratified by silence. Every artifact downstream of this loop — the spec's
+decision table, the epic summary, the work item's goals, the analyzer's
+`.claude/SCHEMA_DECISIONS.md` — is a **transcript** of the loop, never a substitute
+for having run it.
 
 Run the matching loop **WITH the user, never solo** — every divergence is the
 user's decision (`AskUserQuestion`), not a silent pick:
@@ -61,6 +76,14 @@ user's decision (`AskUserQuestion`), not a silent pick:
 
 A new-language change usually runs both loops; a facade-only change runs just the
 SDK loop.
+
+**Node by node, in spine order** — `module` → `type` → `callable` → `call` →
+`call_graph` edge — then the kinds the language adds of its own. One question per
+real decision, each carrying what the reference analyzers did and a recommended
+default. Do not batch a node into one vague question, and do not hand over a
+finished decision table for approval: approving a table is ratification, not design.
+
+Only once every node has an answer the **user** gave does the spec get written.
 
 ## Decomposition and Release Plan
 
@@ -95,12 +118,14 @@ filed ahead of the work are inventory, and inventory rots.
 
 ## <HARD-GATE>
 
-No implementation rung may be entered for structural work until **the spec exists
-and the work is tracked on GitHub**. What "tracked" means is the decomposition
-decision above — for a single-repo change, one issue is a complete answer.
+No implementation rung may be entered for structural work until **the datamodel was
+decided with the user, the spec exists, and the work is tracked on GitHub**. What
+"tracked" means is the decomposition decision above — for a single-repo change, one
+issue is a complete answer.
 
-The gate binds to the design being written down and findable. It never binds to an
-issue count: do not skip the record, and do not inflate it either.
+The gate binds to the design having been *made with the user* and then written down
+and findable. It never binds to an issue count: do not skip the record, and do not
+inflate it either.
 
 ## Spec → Tracking Record
 
@@ -154,3 +179,8 @@ a later session without losing anything.
 | "I'll paste the design summary into the epic so it's self-contained." | Link the committed spec. Pasting is what made epic bodies unreadable, and a doc is reviewable and diffable where an issue body is neither. |
 | "I'll add a CHILDREN checklist so progress is visible." | Sub-issues roll up natively. A hand-maintained checklist drifts the moment anything moves, and so do `Part of #N` trailers. |
 | "I'll just patch the parser / SDK model directly." | That is implementing before triage. Run Contract-Impact Triage first. |
+| "I'll draft the spec and we can adjust the decisions in review." | Reviewing a finished table is ratification, not design. The datamodel loop runs *before* the spec exists — the spec is its transcript. |
+| "These decisions follow from the language; I'll write them up and confirm." | Following from the language is what makes them look obvious and hides the fork. Each one is still the user's call, asked one at a time. |
+| "I asked one question covering the whole schema." | One question per real decision, node by node. A single question spanning a node batches the forks the user most needed to see. |
+| "The design was settled in an earlier session, so I can start building." | Then say which decisions, and where they are recorded. If the user cannot point at the loop that produced them, re-run it — a spec nobody walked is not a decided datamodel. |
+| "The epic body says it all; I'll skip a few template sections." | A section that does not apply is filled with why it does not apply. Deleting it is indistinguishable from not having considered it. |
