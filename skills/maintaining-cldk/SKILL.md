@@ -49,6 +49,14 @@ Failing test first, then the fix. Follow the target repo's own `CLAUDE.md`
 conventions (branch naming, commit style, test layout) — this mode does not
 override local repo discipline, it sits on top of it.
 
+**Everything you file goes on an org form** — the bug report, the feature
+request, and the PR that closes them. Not a hand-rolled body covering the same
+ground. The forms and the rules for filling them are in
+`designing-cldk-changes` → `references/epic-and-issue-templates.md` § The
+forms; the PR body specifically is in `finishing-cldk-work` § Pull Request
+Body. `gh issue create --body` and `gh pr create --body` bypass the form
+silently — reproduce its sections exactly, or pass `--template`.
+
 ## 3. Propagation Sweep
 
 Before you consider the work done, run `references/propagation-checklist.md`
@@ -81,3 +89,5 @@ design mode now; the verdict is not up for negotiation, the timing is.
 | "Tests pass, wrap up." | Local tests passing is not the propagation sweep. Run `propagation-checklist.md` and produce the verdict before declaring done. |
 | "That's a scope call I can just make in this conversation." | A schema-shape question is not a same-turn negotiation with whoever asked — it leaves this rung entirely, via the contract gate. |
 | "This bug is local to this repo, no need to check siblings." | Siblings share the schema and the resolver patterns; a bug class rarely respects repo boundaries. The sweep exists precisely to check. |
+| "I'll write a clear issue body; the form is boilerplate." | The form IS the format. A clear body with your own headings is still off-template, and the sections you would have skipped are the ones that make it honest. |
+| "`gh issue create --body` is faster than the browser." | It is, and it bypasses the form silently. Reproduce the sections exactly or pass `--template`. |

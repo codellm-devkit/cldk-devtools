@@ -3,12 +3,11 @@
 This is how the **Spec → Tracking Record** step of `designing-cldk-changes` materializes on GitHub.
 The gate is not satisfied until both the spec **and** its tracking record exist.
 
-**The issue bodies come from the org-level templates**, not from this file:
-`codellm-devkit/.github` → `.github/ISSUE_TEMPLATE/epic.yml` and `work_item.yml`, with the
-convention written up in that repo's `CONTRIBUTING.md`. Every repo without its own templates picks
-them up automatically. This file covers what the templates cannot: **which shape to file, when to
-file it, and how to wire the pieces together.** The forms are reproduced at the bottom for
-reference — if they ever disagree with the org repo, the org repo wins.
+**Issue and pull-request bodies come from the org-level templates, never from this file** —
+`codellm-devkit/.github` → `.github/ISSUE_TEMPLATE/` and `.github/pull_request_template.md`, with
+the convention written up in that repo's `CONTRIBUTING.md`. Every repo without its own templates
+picks them up automatically. This file covers what the templates cannot: **which shape to file,
+when to file it, how to fill it, and how to wire the pieces together.**
 
 ## The rule that replaces counting
 
@@ -121,91 +120,50 @@ A cross-repo design has no natural home in any one of the repos it changes — c
 whichever analyzer happened to go first is arbitrary, and the other four then link sideways into it.
 Put it with the epic that coordinates it.
 
-## Epic template
+## The forms
 
-```markdown
-Title: Epic: <one-line change> (<affected surfaces, e.g. analyzer + SDK>)
+**The org repo owns the shape; this skill owns when and why.** The forms are deliberately not
+reproduced here. A local copy drifts from the org repo, and the copy is what an agent reads.
 
-SPEC
-<path to the committed spec, e.g. docs/design/specs/2026-07-07-v2-roadmap-design.md>
+| Shape | Form | Filed on |
+| --- | --- | --- |
+| Epic | [`epic.yml`][epic] | `codellm-devkit/.github` only |
+| Work item | [`work_item.yml`][work-item] | the repo it changes |
+| Bug report | [`bug_report.yml`][bug] | the repo it affects |
+| Feature request | [`feature_request.yml`][feature] | the repo it affects |
+| Pull request | [`pull_request_template.md`][pr] | applied automatically on open |
 
-SUMMARY
-<2–4 sentences from the spec: what changes and why. Name the schema-v2 impact
-explicitly — "adds a `comment` body-node kind" / "no schema change, SDK surface only".
-A summary, not a transcript — the spec link above carries the detail.>
+There is no separate "single issue" form. A standalone one-PR change uses **Work item** and is
+simply not attached to an epic; its rungs fold into `GOALS` as checklist lines.
 
-AFFECTED REPOS (from Contract-Impact Triage)
-  - <repo>  — <role: new analyzer | SDK facade | docs | …>  — <rung>
-  - …
+<HARD-GATE>
+Every issue and every pull request is filed on one of these forms — not an approximation of one,
+and not a body with your own headings covering the same ground.
 
-DESIGN DECISIONS (locked with the user before build starts)
-  - <decision 1 — recorded in .claude/SCHEMA_DECISIONS.md / FACADE_DECISIONS.md>
-  - <decision 2>
-  - Scope guard: <what is explicitly OUT of scope for this change>
+`gh issue create --body` and `gh pr create --body` bypass the form silently. When you use them,
+reproduce the form's sections EXACTLY: same names, same order, none added, none dropped. Prefer
+`--template` where the command supports it.
 
-RELEASE PLAN (decided with the user alongside the decomposition)
-  - <which release/train carries each piece>
-  - <what gates what — e.g. "2.0.0 gates on the Java lane; rc.* publishes without it">
-  - <where two repos need version lockstep, and which side moves first>
+A section that does not apply is filled with the reason it does not apply. It is never deleted.
+</HARD-GATE>
 
-(No CHILDREN section — children are attached as native sub-issues and roll up
-automatically. Do not hand-maintain a checklist here.)
+Read the form before filling it, rather than recalling it:
 
-DEFINITION OF DONE (epic-level)
-  - Every sub-issue closed and its PR's gate green.
-  - Analyzer output validates against the SDK v2 models at its max_level; L1 ⊆ … ⊆ L4
-    superset gate holds; parity clause holds (no renamed/repurposed shared vocabulary).
-  - SDK public API unchanged (or the major bump + shims are documented).
-  - Docs / CHANGELOG updated; versions pinned in lockstep.
+```bash
+gh api repos/codellm-devkit/.github/contents/.github/ISSUE_TEMPLATE/work_item.yml \
+  --jq .content | base64 -d
 ```
 
-## Work-item template
-
-The org `work_item.yml` form, in prose. Used both for an epic's children and for a standalone
-one-PR change — there is no separate "single issue" form; for a standalone change you simply do not
-attach it to an epic, and rungs fold into `GOALS` as checklist lines.
-
-Keep the CAVEATS and DEFINITION OF DONE sections — they are the parts that make the issue honest.
-Fill `<slots>` from the design decisions; delete parts that don't apply.
-
-```markdown
-Title: <unit of work closed by ONE PR, e.g. "codeanalyzer-<lang>: L1 symbol table + call graph">
-
-PLAN (optional)
-<path to the committed plan, e.g. docs/design/plans/2026-07-14-cpg-models.md>
-
-PROBLEM
-<What this repo lacks today and what this issue adds. One paragraph. Cite file:line.>
-
-SCOPE BOUNDARY
-<What this issue does NOT do — the provider/client line especially. Example: an
-analyzer emits the graph and stops; slicing and taint are frontend SDK queries
-over that graph (cldk-sdk-frontend), out of scope here — no `taint_flows`
-section, no sources/sinks policy.>
-
-GOALS (the contract, as a checklist)
-  - [ ] <goal>
-  - [ ] <goal>
-  <steps that land in THIS PR are checkboxes here — they do not become issues>
-
-CAVEATS AND KNOWN RISKS
-  - <substrate/tooling risk — be concrete; name the workaround>
-  - <inherited unsoundness / known gaps — documented, not silently absorbed>
-  - <cost / determinism / incrementality notes>
-
-DEFINITION OF DONE
-  - <exact-set gate, not "non-empty" — e.g. the backward slice on the fixture
-    equals the hand-computed node set>
-  - Output validates against the SDK v2 models; parity clause holds.
-  - <projection / determinism / timing gates as applicable>
-```
-
-(No `Part of` trailer — the sub-issue link carries the relationship.)
+[epic]: https://github.com/codellm-devkit/.github/blob/main/.github/ISSUE_TEMPLATE/epic.yml
+[work-item]: https://github.com/codellm-devkit/.github/blob/main/.github/ISSUE_TEMPLATE/work_item.yml
+[bug]: https://github.com/codellm-devkit/.github/blob/main/.github/ISSUE_TEMPLATE/bug_report.yml
+[feature]: https://github.com/codellm-devkit/.github/blob/main/.github/ISSUE_TEMPLATE/feature_request.yml
+[pr]: https://github.com/codellm-devkit/.github/blob/main/.github/pull_request_template.md
 
 ## What a filled-in section looks like
 
-The template above gives the slots. This gives the shape of what goes in them — the part
-agents get wrong. Left alone, a filled-in work item runs 900–1000 words of restated context,
+The forms give the slots. This gives the shape of what goes in them — the part agents get
+wrong. It applies to every form in the table above, and to pull-request bodies. Left alone, a filled-in work item runs 900–1000 words of restated context,
 narrated investigation and repeated findings. Reviewers stop reading, and the CAVEATS section
 — the one that makes the issue honest — is the part they never reach.
 
@@ -255,6 +213,23 @@ connective fluff; preserve code, paths, commands, identifiers, numbers and headi
 **Grammar stays correct.** Compression means deleting words, never mangling the ones that remain.
 "PyCG spells", not "PyCG say". "Two consequences", not "two bad thing". Subject-verb agreement and
 plurals cost nothing and their absence reads as noise in a public tracker.
+
+### Layout
+
+A work item gets scanned twice before it is read: once by whoever decides to pick it up, once by
+whoever does. Arrange for the scan.
+
+| Element | Rule |
+| --- | --- |
+| Answer first | `PROBLEM` opens with what is broken or missing, never with how you found it. Diagnosis after, in a sentence or two. |
+| One action per step | A `GOALS` checkbox is one action. Two commands in one box means the second gets skipped. |
+| Seven items in view | No section shows more than seven bullets or boxes. More than that is a second issue. |
+| Condition before command | "If the fixture has no `__init__`, regenerate it" — never the reverse. A reader stops at the first word that does not apply to them. |
+| Headings name what happens there | Only where you add one beneath a form section. "Reproduce on Python 3.11", not "Notes". |
+
+**Do not bullet an argument.** `PROBLEM` is prose because it reasons; chopping it into fragments to
+look skimmable strips the connective tissue and leaves the reader to reassemble it. Shorten the
+paragraph instead.
 
 ### Leave out
 
