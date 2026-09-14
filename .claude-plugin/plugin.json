@@ -2,7 +2,7 @@
   "name": "cldk-devtools",
   "displayName": "CLDK DevTools",
   "description": "The CLDK developer's mode ladder: skills for designing, building, maintaining, and releasing CodeLLM-DevKit — from a language's backend analyzer through the frontend SDKs, plus day-to-day upkeep across the codellm-devkit org.",
-  "version": "0.4.1",
+  "version": "0.5.1",
   "author": {
     "name": "Rahul Krishna",
     "email": "i.m.ralk@gmail.com"
