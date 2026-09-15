@@ -29,7 +29,7 @@ shape. Before you touch code:
   If the user cannot place the loop that produced them, that is a re-entry to design mode, not a
   formality to note in passing.
 - A **maintenance escalation** enters here only when it arrives **with its design decision already
-  recorded** (a `.claude/SCHEMA_DECISIONS.md` entry + issue). A bare "add a field" with no design
+  recorded** (a `CLAUDE.md` Schema decisions entry + issue). A bare "add a field" with no design
   is not an entry — it goes back to design mode.
 
 ## The Keystone

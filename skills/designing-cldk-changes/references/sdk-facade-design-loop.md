@@ -109,8 +109,8 @@ first, anchored in what the references did. The load-bearing slots:
 
 Use the same question shape as the schema loop — *"Java did X, Python did Y, C did Z; for
 `<lang>`, how do you want it?"* with explained options and a recommended default. Record each
-answer (a one-line note per decision) in `.claude/FACADE_DECISIONS.md` in the SDK repo (under
-`.claude/`, not the repo root), the same treatment `SCHEMA_DECISIONS.md` gets for the schema.
+answer (a one-line note per decision) in the SDK repo's `CLAUDE.md` under a **Facade decisions** heading, the same treatment the
+analyzer's Schema decisions section gets for the schema.
 
 ### 4. Define & co-evolve
 The decisions here are encoded into **both** SDK facades in the same change — the Python
@@ -138,6 +138,6 @@ mistaking *Java's* surface for *the* surface, especially for a procedural target
 
 ## Output of this loop
 A complete, user-approved facade vocabulary for the language — the method list, names, and
-constructor contract — with every divergence decided and noted in `.claude/FACADE_DECISIONS.md`.
+constructor contract — with every divergence decided and noted in `CLAUDE.md` under Facade decisions.
 This is a *design artifact*: it feeds the spec and the epic's SDK-facade child issue. No facade
 files are written yet — that is the `cldk-sdk-frontend` rung, entered only after the gate.

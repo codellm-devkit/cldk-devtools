@@ -271,7 +271,7 @@ the `callee: null → id` backfill. That is the additive paradigm made literal.
 The **vocabulary is shared; language extras are additive.** Node `kind`s, edge list names, edge
 `kind`/`prov` values, and the shapes above are identical across analyzers. A language **adds**
 kinds (Go `defer_resume` CFG edges, Rust `unsafe` flags, TS `interface`/`enum` types) — recorded
-in its `.claude/SCHEMA_DECISIONS.md` — but must **never rename or repurpose** a shared name. This
+in its `CLAUDE.md` Schema decisions section — but must **never rename or repurpose** a shared name. This
 is what lets the SDK model the schema **once** (one `Node`, one `Edge`, one `Application`), and
 what lets the Neo4j schema be a single versioned contract. Hold the parity line, or the whole
 one-model premise collapses. This clause is the rule the design loop (`references/schema-design-loop.md`)
@@ -380,7 +380,7 @@ type** — there is no `type` field. No dangling endpoints.
 
 Keep the invariant spine (`application → module → type/callable → body`, identity-only edges,
 one `signatureOf()`), then **add** at the leaves. Record every addition in the analyzer's
-`.claude/SCHEMA_DECISIONS.md`. The design loop (`references/schema-design-loop.md`) walks this
+`CLAUDE.md` under Schema decisions. The design loop (`references/schema-design-loop.md`) walks this
 rubric node by node, with the user.
 
 | Add a new… | How | Example |

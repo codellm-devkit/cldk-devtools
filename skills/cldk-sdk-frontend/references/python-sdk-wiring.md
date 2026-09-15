@@ -2,7 +2,7 @@
 
 Once `codeanalyzer-<lang>` emits a conformant `analysis.json` and the facade surface is
 **already designed** (in design mode — `skills/designing-cldk-changes/references/sdk-facade-design-loop.md`,
-recorded in `.claude/FACADE_DECISIONS.md`), this file is the **encoding** mechanics for
+recorded in `CLAUDE.md` under Facade decisions), this file is the **encoding** mechanics for
 the Python SDK (`python-sdk/`). You are not deciding the surface here; you are writing
 the files that realize it, under the Iron Rule: **every accessor keeps its name,
 signature, and return type.**
@@ -55,7 +55,7 @@ tree:
   table in `schema-contract.md`): `<L>Callable, <L>Class, <L>Module, <L>Callsite,
   <L>Application = CallableView, TypeView, ModuleView, CallsiteView, Application`. The
   language's **own** node kinds/fields are **additive Optional fields on the one
-  `Node`** + `kind` string values (from the analyzer's `SCHEMA_DECISIONS.md`) — no new
+  `Node`** + `kind` string values (from the analyzer's `CLAUDE.md` Schema decisions) — no new
   per-language Pydantic class.
 - **Do not** copy the old per-language rich-edge tree. The template is the shared
   `cpg/` package; the first language to migrate builds it, the rest add fields/aliases.

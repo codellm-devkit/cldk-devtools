@@ -30,7 +30,7 @@ call nodes. For each `call` node:
 - **Method dispatch via receiver type**: resolve through the receiver's static type.
 - **Virtual / polymorphic dispatch**: decide how far to expand, and **make it a recorded decision**
   (`AskUserQuestion`) — declared type only ≈ CHA; declared type + instantiated subtypes ≈ RTA-style.
-  Record the choice in `.claude/SCHEMA_DECISIONS.md` / the README's Architecture & Tooling block.
+  Record the choice in `CLAUDE.md` (Schema decisions) / the README's Architecture & Tooling block.
 - **Unresolved sites**: an **explicit fallback** — keep the `call` node (with `callee` still `null`),
   **skip the edge**, and **never crash**. A partial graph with honest gaps beats an exception.
 

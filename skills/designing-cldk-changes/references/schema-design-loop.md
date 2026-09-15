@@ -14,7 +14,7 @@ parity clause: add at the leaves, never rename the shared vocabulary). You ancho
 **plus the mature reference analyzers** (**Java** and **Python**, and **C** for procedural
 targets), interrogate how the target language genuinely differs, and — crucially — **bring every
 divergence to the user as a decision** rather than choosing silently. Do it **node by node**, not
-all at once, recording each answer in `.claude/SCHEMA_DECISIONS.md` in the generated analyzer repo.
+all at once, recording each answer under a **Schema decisions** heading in the generated analyzer repo's `CLAUDE.md`.
 
 This is the intellectual core of a language pack. Run it for every schema node the change touches.
 
@@ -70,8 +70,8 @@ Always include *why* each option exists and what it buys/costs, anchored in what
 did. When the language adds something with no reference precedent (TS generics, Go receiver types,
 Rust lifetimes), present the rubric choice — new node kind | typed field | `tags` (Part II of
 `references/canonical-schema.md`, § Language expansion) — the same way and ask. Record each answer
-(a one-line note per decision) in `.claude/SCHEMA_DECISIONS.md` in the generated repo (under
-`.claude/`, not the repo root) so the choices are auditable and a later session can see why the
+(a one-line note per decision) in the generated repo's `CLAUDE.md` under **Schema decisions** — the
+repo-root file every agent reads, never a dot-directory — so the choices are auditable and a later session can see why the
 schema looks the way it does.
 
 ### 4. Define & co-evolve
@@ -95,6 +95,6 @@ precedent at each divergence. As more languages mature, add them to the anchor s
 
 ## Output of this loop
 A complete schema for the language — analyzer types + SDK `<L>` models — with every divergence
-decided by the user and noted in `.claude/SCHEMA_DECISIONS.md`. This is a *design artifact*: it
+decided by the user and noted in `CLAUDE.md` under Schema decisions. This is a *design artifact*: it
 feeds the spec and the epic's schema-design child issue. No files are walked and no analyzer code
 is written yet — that is the `codeanalyzer-backend` rung, entered only after the gate is satisfied.

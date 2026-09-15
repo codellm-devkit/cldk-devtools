@@ -9,7 +9,7 @@ move — a models tree, an analysis facade, and a dispatch branch — but in Typ
 > **Design the surface once, in design mode.** This file is the *encoding* mechanics for
 > the TS side. The facade's query *surface* is designed with the user in
 > `skills/designing-cldk-changes/references/sdk-facade-design-loop.md`, and that one
-> approved vocabulary (from `.claude/FACADE_DECISIONS.md`) is shared by **both** SDKs —
+> approved vocabulary (from the SDK's `CLAUDE.md` Facade decisions) is shared by **both** SDKs —
 > so the TS `<Lang>Analysis` mirrors the Python `<Lang>Analysis` method-for-method, just
 > transposed to `camelCase` and TS types. Don't re-decide the surface here.
 

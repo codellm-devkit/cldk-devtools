@@ -18,7 +18,7 @@ Do not silently pick, and do not ask an open-ended "what tools do you want?" Ins
    say so and fall back per the reasoning here rather than naming a package that isn't real.
 4. **Commit the locked choices** to the analyzer `README.md` under an **Architecture & Tooling**
    heading (one-line rationale next to any non-default choice), so the scaffolding and any later
-   session share one source of truth. Schema decisions go in `.claude/SCHEMA_DECISIONS.md`; these are
+   session share one source of truth. Schema decisions go in the analyzer's `CLAUDE.md` under a **Schema decisions** heading; these are
    *tooling* decisions.
 5. **Verify the toolchain is installed** before building (parser, resolver, and — if L4 is in scope —
    the points-to oracle from `references/level-4-interprocedural-sdg.md`). If anything required is
