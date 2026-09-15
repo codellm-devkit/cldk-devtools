@@ -8,30 +8,34 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### ⚠️ Changed — breaking
 
-The `work_item` and `epic` issue forms are retired. `codellm-devkit/.github` now ships
-`bug_report.md` and `feature_request.md` only, with `blank_issues_enabled: false` so one of
-the two is always used (`codellm-devkit/.github#87`).
+The `work_item` and `epic` issue forms are retired. The `codellm-devkit/.github` repository now
+holds two forms: `bug_report.md` and `feature_request.md`. It also sets
+`blank_issues_enabled: false`. Therefore one of the two forms is always in use. The change is
+`codellm-devkit/.github#87`.
 
-- **`designing-cldk-changes`** → `references/epic-and-issue-templates.md` is renamed
-  `references/issue-and-pr-tracking.md` and rewritten against the two surviving forms. The
-  three tracking shapes survive with the epic renamed to a **parent issue** — an ordinary
-  `feature_request` that happens to have children. Native cross-repo sub-issues are unchanged;
-  they are a GitHub mechanism, not a template feature.
+- **`designing-cldk-changes`.** The file `references/epic-and-issue-templates.md` has the new name
+  `references/issue-and-pr-tracking.md`. Its text now uses the two remaining forms. The three
+  tracking shapes stay. The epic has the new name **parent issue**, which is a normal
+  `feature_request` issue with children. Cross-repository sub-issues do not change. They are a
+  GitHub function, not a function of a form.
 
-- **The discipline the retired forms enforced is placed, not dropped.** A new table maps each
-  retired section to where it now lives: scope boundary → *Describe alternatives you've
-  considered*; caveats and known risks → *Additional context*; definition of done → the
-  checkboxes under *Describe the solution you'd like*, or *Expected behavior* on a bug. The
-  per-section word budget is re-cut against the legacy section names.
+- **The retired forms enforced a discipline. That discipline moves. It does not disappear.** A new
+  table gives the new position of each retired section. The scope boundary moves to *Describe
+  alternatives you've considered*. The caveats and known risks move to *Additional context*. The
+  definition of done moves to the checkboxes under *Describe the solution you'd like*, or to
+  *Expected behavior* on a bug report. The word limit for each section now uses the names of the
+  legacy sections.
 
-- **Titles are plain sentences, types are labels.** A new **Titles and labels** section bans
-  `type(scope):` prefixes on issues, pull requests and commit subjects — the prefix duplicates
-  what a label encodes and eats the first twenty characters of every row a reader scans.
-  Identifiers in a title go in backticks. `gh issue create` carries `--label` instead.
+- **A title is a plain sentence. A label gives the type.** A new **Titles and labels** section
+  prohibits a `type(scope):` prefix on an issue, a pull request and a commit subject. A label
+  already gives the type. The prefix also fills the first 20 characters of each row that a reader
+  scans. An identifier in a title goes between backticks. The `gh issue create` command now uses
+  `--label`.
 
-- **`planning-cldk-work`, `maintaining-cldk`, `finishing-cldk-work`, `codeanalyzer-backend`,
-  `cldk-sdk-frontend`, `using-cldk-devtools`** and the schema/facade design-loop references
-  follow the same rename. No ladder rung, gate or routing rule changed.
+- **Other skills follow the same rename.** These are `planning-cldk-work`, `maintaining-cldk`,
+  `finishing-cldk-work`, `codeanalyzer-backend`, `cldk-sdk-frontend` and `using-cldk-devtools`. The
+  schema and facade design-loop references also follow it. No rung, no gate and no routing rule
+  changed.
 
 ### Changed
 
