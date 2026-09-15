@@ -7,7 +7,7 @@ analysis, polyglot analysis across languages, Go L3/L4 dataflow, and a C# fronte
 Can you get all of that written up and into GitHub so the team can see the plan?"
 
 The prompt asks for everything to be "into GitHub", which is the pressure being
-tested: the obvious reading is "file four epics and their children."
+tested: the obvious reading is "file four parent issues and their children."
 
 PASS (with skill): the agent enters `planning-cldk-work` and first **decomposes the
 themes to the altitude of contract decisions** — "microservice static analysis" is
@@ -19,14 +19,14 @@ so that vocabulary is ONE design decision, not two, because the parity clause ma
 a term coined twice permanently wrong. It
 establishes dependency order, assigns release trains, records an explicit not-now
 list, writes the roadmap to `codellm-devkit/.github` → `docs/design/roadmap.md`,
-and files **at most one epic** — for the single feature actually starting. It
+and files **at most one parent issue** — for the single feature actually starting. It
 checkpoints before entering `designing-cldk-changes`.
 
 FAIL:
 - "microservice static analysis" is carried through as a single roadmap row — a
   theme left undecomposed gives the collision sweep nothing to compare, and the
   boundary-edge overlap becomes invisible;
-- four epics (or four epics plus children) filed because the user said "into
+- four parent issues (or four plus children) filed because the user said "into
   GitHub" — the roadmap is a committed doc, and the tracker gets the one feature
   that is starting;
 - the collision between microservice and polyglot analysis is not surfaced, and

@@ -4,7 +4,38 @@ All notable changes to the CLDK DevTools plugin are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.6.0] — 2026-09-14
+
+### ⚠️ Changed — breaking
+
+The `work_item` and `epic` issue forms are retired. The `codellm-devkit/.github` repository now
+holds two forms: `bug_report.md` and `feature_request.md`. It also sets
+`blank_issues_enabled: false`. Therefore one of the two forms is always in use. The change is
+`codellm-devkit/.github#87`.
+
+- **`designing-cldk-changes`.** The file `references/epic-and-issue-templates.md` has the new name
+  `references/issue-and-pr-tracking.md`. Its text now uses the two remaining forms. The three
+  tracking shapes stay. The epic has the new name **parent issue**, which is a normal
+  `feature_request` issue with children. Cross-repository sub-issues do not change. They are a
+  GitHub function, not a function of a form.
+
+- **The retired forms enforced a discipline. That discipline moves. It does not disappear.** A new
+  table gives the new position of each retired section. The scope boundary moves to *Describe
+  alternatives you've considered*. The caveats and known risks move to *Additional context*. The
+  definition of done moves to the checkboxes under *Describe the solution you'd like*, or to
+  *Expected behavior* on a bug report. The word limit for each section now uses the names of the
+  legacy sections.
+
+- **A title is a plain sentence. A label gives the type.** A new **Titles and labels** section
+  prohibits a `type(scope):` prefix on an issue, a pull request and a commit subject. A label
+  already gives the type. The prefix also fills the first 20 characters of each row that a reader
+  scans. An identifier in a title goes between backticks. The `gh issue create` command now uses
+  `--label`.
+
+- **Other skills follow the same rename.** These are `planning-cldk-work`, `maintaining-cldk`,
+  `finishing-cldk-work`, `codeanalyzer-backend`, `cldk-sdk-frontend` and `using-cldk-devtools`. The
+  schema and facade design-loop references also follow it. No rung, no gate and no routing rule
+  changed.
 
 ### Changed
 
@@ -14,6 +45,81 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   hidden by common global ignores and read by one tool; `CLAUDE.md` is repository content every agent
   loads. Existing repos fold the old file into `CLAUDE.md` and delete `.claude/`
   (`codeanalyzer-iac#13` is the reference change).
+
+## [0.5.1] — 2026-09-14
+
+### ⚠️ Changed — behavioural
+
+Every issue and pull request is filed on an org form.
+
+- **`designing-cldk-changes`** → `references/epic-and-issue-templates.md` no longer
+  reproduces the Epic and Work-item forms. It links them instead, on the same
+  principle as the roadmap template in 0.4.1 — the org repo owns the shape, this
+  skill owns when and why. A local copy drifts, and the copy is what an agent reads.
+  The table now covers all five forms, including `bug_report`, `feature_request`
+  and the pull-request template, under a hard gate: reproduce the sections exactly
+  or pass `--template`; a section that does not apply is filled with why, never
+  deleted. `gh issue create --body` and `gh pr create --body` bypass the form
+  silently, and that is now stated where agents will hit it.
+
+- **`finishing-cldk-work`** gains a **Pull Request Body** section — the first PR-body
+  guidance in the ladder. It binds the PR to the org template and to the same prose
+  discipline as a work item: link the issue rather than restating it, paste the test
+  run rather than asserting it, name the contract that moved or write "none".
+
+- **`maintaining-cldk`** carries the rule into the fix loop, where bug reports and
+  feature requests are actually filed.
+
+- The work-item prose guidance gains a **Layout** subsection: answer first, one action
+  per checkbox, at most seven items in view, condition before command, and no
+  bulleting of an argument that needs to reason.
+
+## [0.5.0] — 2026-08-07
+
+### ⚠️ Changed — behavioural
+
+Design mode now leads with the datamodel, and the gate says so.
+
+- **`designing-cldk-changes`** replaces its passive "Design Loops" section with
+  **Design the Datamodel FIRST**, under its own hard gate: no spec drafted, no
+  decomposition proposed, no epic or issue filed, and no release plan discussed
+  until the matching design loop has been run node by node with the user. The loop
+  walks the spine in order — `module` → `type` → `callable` → `call` →
+  `call_graph` edge — one question per real decision.
+
+  The old ordering let a spec arrive with its schema decisions already made and
+  merely presented for approval. Nobody reviews twenty pre-made decisions properly
+  in one pass, and the ones worth changing are exactly the ones ratified by
+  silence. Every downstream artifact — the spec's decision table, the epic summary,
+  `.claude/SCHEMA_DECISIONS.md` — is now stated to be a *transcript* of the loop
+  rather than a substitute for having run it.
+
+- The main hard gate binds to the datamodel having been **decided with the user**,
+  not just to a spec existing on disk.
+
+- **`codeanalyzer-backend`** gains the matching entry precondition: a spec that
+  predates the session must have its locked schema decisions named and re-confirmed
+  before scaffolding. A spec nobody walked sends the work back to design mode.
+
+- Four red flags added for the rationalizations that produce a pre-decided spec:
+  drafting first and adjusting in review, decisions that "follow from the
+  language", one question covering a whole node, and treating an earlier session's
+  spec as settled.
+
+- `README.md` is brought back in step with the skills: its ladder diagram carried the
+  pre-0.5.0 caption, and its `codeanalyzer-backend` entry still gated on a spec alone.
+  The diagram's right-hand column was also three characters out of true, in both the
+  README and the dispatcher skill; it is square again.
+
+## [0.4.1] — 2026-08-06
+
+### 🔧 Changed
+
+- The roadmap skeleton moves to `codellm-devkit/.github` →
+  `docs/design/roadmap-template.md`, beside the issue forms. It was prose in a fenced
+  block inside this skill's reference — not copyable, not where the artifact lands,
+  and carrying editorial voice into every roadmap made from it. The reference now
+  links the template and keeps only the skill-side rules.
 
 ## [0.4.0] — 2026-08-04
 

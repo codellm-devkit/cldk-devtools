@@ -28,7 +28,7 @@ to codeanalyzer-backend now or stop here. Do not invoke it unasked.
 (b) **For any change to the facade *surface*** (a new language's facade, a new or
 changed accessor), a **spec + a GitHub tracking record cover it**, with the surface
 already decided in the SDK facade design loop. That record is whatever the
-decomposition decision chose — an epic with children, or a single issue; one issue is
+decomposition decision chose — a parent with children, or a single issue; one issue is
 a complete answer for a single-repo change. **If it isn't designed, STOP** — then
 checkpoint: `AskUserQuestion` whether to enter designing-cldk-changes now or stop here.
 `skills/designing-cldk-changes/references/sdk-facade-design-loop.md` owns the

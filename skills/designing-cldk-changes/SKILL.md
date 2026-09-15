@@ -47,7 +47,22 @@ Siblings share the schema — a "one analyzer" change is rarely one repo. Name
 every affected repo now. This list is the input to the decomposition decision
 below — it is not itself a list of issues to file.
 
-## Design Loops
+## Design the Datamodel FIRST
+
+<HARD-GATE>
+The datamodel and schema are the first thing designed, and the last thing that may
+be assumed. No spec is drafted, no decomposition is proposed, no issue is
+filed, and no release plan is discussed until the matching design loop has been run
+node by node WITH the user.
+</HARD-GATE>
+
+A spec that arrives with its schema decisions already made is not a design — it is a
+proposal wearing a design's clothes. Nobody reviews twenty pre-made decisions
+properly in one pass, and the ones the user would have changed are precisely the ones
+that get ratified by silence. Every artifact downstream of this loop — the spec's
+decision table, the parent's summary, a child's goals, the analyzer's
+`.claude/SCHEMA_DECISIONS.md` — is a **transcript** of the loop, never a substitute
+for having run it.
 
 Run the matching loop **WITH the user, never solo** — every divergence is the
 user's decision (`AskUserQuestion`), not a silent pick:
@@ -62,6 +77,14 @@ user's decision (`AskUserQuestion`), not a silent pick:
 A new-language change usually runs both loops; a facade-only change runs just the
 SDK loop.
 
+**Node by node, in spine order** — `module` → `type` → `callable` → `call` →
+`call_graph` edge — then the kinds the language adds of its own. One question per
+real decision, each carrying what the reference analyzers did and a recommended
+default. Do not batch a node into one vague question, and do not hand over a
+finished decision table for approval: approving a table is ratification, not design.
+
+Only once every node has an answer the **user** gave does the spec get written.
+
 ## Decomposition and Release Plan
 
 **Decide this WITH the user — `AskUserQuestion`, never solo.** The affected-repo
@@ -72,14 +95,15 @@ preserve. Put both questions to the user once the triage and design loop are don
 
 **The rule that replaces counting: tracking granularity follows PR granularity.**
 Never step count, never repo count. Does a pull request close it? Then it is an
-issue. Is it a step inside a PR? Then it is a checkbox in that issue's `GOALS`.
+issue. Is it a step inside a PR? Then it is a checkbox under that issue's
+**Describe the solution you'd like**.
 
 1. **Decomposition — what tracking shape?** Offer the range, recommend one:
-   - **One work item**, rungs as checklist items — the default when the change
+   - **One issue**, rungs as checklist items — the default when the change
      lands in one PR.
-   - **Epic + one sub-issue per PR** — when the work spans repos that ship on their
-     own clocks and need a coordination record.
-   - **Epic + a sub-issue stack** — only when a rung is genuinely heavy (a full
+   - **Parent + one sub-issue per PR** — when the work spans repos that ship on
+     their own clocks and need a coordination record.
+   - **Parent + a sub-issue stack** — only when a rung is genuinely heavy (a full
      L3/L4 build, a multi-stage migration) and its units land as separate PRs.
 2. **Release plan — what ships when?** Which release or train carries each piece,
    what gates what, and where two repos need version lockstep. A decomposition
@@ -88,19 +112,21 @@ issue. Is it a step inside a PR? Then it is a checkbox in that issue's `GOALS`.
 Fewer, well-scoped issues beat more, thinner ones. When unsure, propose the smaller
 shape and let the user expand it.
 
-**File children just-in-time.** An epic is filed at design time; its children are
+**File children just-in-time.** A parent is filed at design time; its children are
 filed as each unit is picked up, not all at once up front. The committed spec
 already records the full plan — the backlog does not need to mirror it. Issues
 filed ahead of the work are inventory, and inventory rots.
 
 ## <HARD-GATE>
 
-No implementation rung may be entered for structural work until **the spec exists
-and the work is tracked on GitHub**. What "tracked" means is the decomposition
-decision above — for a single-repo change, one issue is a complete answer.
+No implementation rung may be entered for structural work until **the datamodel was
+decided with the user, the spec exists, and the work is tracked on GitHub**. What
+"tracked" means is the decomposition decision above — for a single-repo change, one
+issue is a complete answer.
 
-The gate binds to the design being written down and findable. It never binds to an
-issue count: do not skip the record, and do not inflate it either.
+The gate binds to the design having been *made with the user* and then written down
+and findable. It never binds to an issue count: do not skip the record, and do not
+inflate it either.
 
 ## Spec → Tracking Record
 
@@ -108,21 +134,22 @@ issue count: do not skip the record, and do not inflate it either.
    the affected-repo list, and the release plan. Specs are committed as provenance,
    so they are reviewable and diffable. A **single-repo** spec goes in that repo's
    `docs/design/specs/`; a **cross-repo** spec goes in the org `.github` repo,
-   `codellm-devkit/.github` → `docs/design/specs/`, next to the epic
+   `codellm-devkit/.github` → `docs/design/specs/`, next to the parent issue
    that coordinates it.
 2. **File what the decomposition decision chose**, using
-   `references/epic-and-issue-templates.md`. Issue bodies come from the org-level
-   forms in `codellm-devkit/.github` (`.github/ISSUE_TEMPLATE/epic.yml`,
-   `work_item.yml`); the reference file covers which shape, when, and how to wire
-   sub-issues.
-3. **Link the spec — do not paste it.** The epic carries a path to the committed
+   `references/issue-and-pr-tracking.md`. Issue bodies come from the org-level
+   forms in `codellm-devkit/.github` — `.github/ISSUE_TEMPLATE/bug_report.md` for a
+   defect, `feature_request.md` for everything else, and nothing else, because blank
+   issues are disabled. The reference file covers which shape, when, how to title
+   and label it, and how to wire sub-issues.
+3. **Link the spec — do not paste it.** The parent carries a path to the committed
    spec plus a short summary. Duplicating the design into the issue body is what
-   made epic bodies unreadable.
+   made parent bodies unreadable.
 
-**Epics live in `codellm-devkit/.github`** (the org config repo), never on the
-deliverable repo — that keeps working repos' trackers to work items only. Children
-are filed on the repo they change and attach as **cross-repo sub-issues**, never a
-hand-maintained `CHILDREN` checklist and never `Part of #N` trailers.
+**Cross-repo parents live in `codellm-devkit/.github`** (the org config repo), never
+on the deliverable repo — that keeps working repos' trackers to one issue per PR.
+Children are filed on the repo they change and attach as **cross-repo sub-issues**,
+never a hand-maintained `CHILDREN` checklist and never `Part of #N` trailers.
 
 Only when the spec and its tracking record both exist is the gate satisfied.
 
@@ -136,7 +163,7 @@ change).
 **Checkpoint first.** Do not auto-invoke it. Summarize the locked decisions, the
 release plan, and where the tracking record lives, then `AskUserQuestion` —
 start the first rung now, start a different one, or stop here (see
-`using-cldk-devtools` → Transition Checkpoint). Parking after the spec and epic
+`using-cldk-devtools` → Transition Checkpoint). Parking after the spec and parent issue
 is a legitimate outcome: the gate is satisfied, and implementation can start in
 a later session without losing anything.
 
@@ -144,13 +171,18 @@ a later session without losing anything.
 
 | Rationalization | Reality |
 | --- | --- |
-| "We can write it up after it ships." | The gate exists precisely for this — the spec + epic are inputs to implementation, not paperwork produced afterward. |
+| "We can write it up after it ships." | The gate exists precisely for this — the spec + tracking record are inputs to implementation, not paperwork produced afterward. |
 | "It's a small additive change." | Additive schema changes still move the shared cross-language vocabulary; they enter design, under the gate. |
 | "One issue can't be enough — this is structural." | Structural is about the contract moving, not about issue count. A single-repo change tracked in one well-scoped issue satisfies the gate. |
 | "I'll file one per repo per rung, to be safe." | That reflex is what makes a backlog unreadable. Decomposition is a decision you put to the user, not a default you apply. |
 | "The user is busy; I'll pick the decomposition and release plan myself." | Every divergence is the user's call — decomposition and release plan included. `AskUserQuestion`, never solo. |
 | "A heads-up to the SDK is enough." | An affected repo is tracked — as its own child when the decomposition calls for one, otherwise as a named checklist item. Not a courtesy ping. |
 | "I'll file every child now so nothing is forgotten." | The committed spec is what stops things being forgotten. Children are filed as they are picked up; filing ahead creates inventory that goes stale and buries the live issues. |
-| "I'll paste the design summary into the epic so it's self-contained." | Link the committed spec. Pasting is what made epic bodies unreadable, and a doc is reviewable and diffable where an issue body is neither. |
+| "I'll paste the design summary into the parent so it's self-contained." | Link the committed spec. Pasting is what made parent bodies unreadable, and a doc is reviewable and diffable where an issue body is neither. |
 | "I'll add a CHILDREN checklist so progress is visible." | Sub-issues roll up natively. A hand-maintained checklist drifts the moment anything moves, and so do `Part of #N` trailers. |
 | "I'll just patch the parser / SDK model directly." | That is implementing before triage. Run Contract-Impact Triage first. |
+| "I'll draft the spec and we can adjust the decisions in review." | Reviewing a finished table is ratification, not design. The datamodel loop runs *before* the spec exists — the spec is its transcript. |
+| "These decisions follow from the language; I'll write them up and confirm." | Following from the language is what makes them look obvious and hides the fork. Each one is still the user's call, asked one at a time. |
+| "I asked one question covering the whole schema." | One question per real decision, node by node. A single question spanning a node batches the forks the user most needed to see. |
+| "The design was settled in an earlier session, so I can start building." | Then say which decisions, and where they are recorded. If the user cannot point at the loop that produced them, re-run it — a spec nobody walked is not a decided datamodel. |
+| "The parent body says it all; I'll skip a few template sections." | A section that does not apply is filled with why it does not apply. Deleting it is indistinguishable from not having considered it. |

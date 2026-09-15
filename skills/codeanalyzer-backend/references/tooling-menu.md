@@ -3,7 +3,7 @@
 The defining act of a language pack is **choosing the moving parts of the analyzer** for the target
 language — the parser, the resolver, and any optional enrichment engine. These are real tradeoffs
 that depend on what the team already runs in CI, what they will depend on, and how much resolution
-accuracy they need. The load-bearing choices were locked in the **spec + epic** by
+accuracy they need. The load-bearing choices were locked in the **spec + tracking record** by
 `designing-cldk-changes`; this menu is how you *confirm and record* them before scaffolding, and how
 you fill any slot the spec left open.
 

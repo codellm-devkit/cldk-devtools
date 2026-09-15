@@ -96,5 +96,5 @@ precedent at each divergence. As more languages mature, add them to the anchor s
 ## Output of this loop
 A complete schema for the language — analyzer types + SDK `<L>` models — with every divergence
 decided by the user and noted in `CLAUDE.md` under Schema decisions. This is a *design artifact*: it
-feeds the spec and the epic's schema-design child issue. No files are walked and no analyzer code
+feeds the spec and the parent's schema-design child issue. No files are walked and no analyzer code
 is written yet — that is the `codeanalyzer-backend` rung, entered only after the gate is satisfied.

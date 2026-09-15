@@ -36,6 +36,32 @@ pass are all the same failure shape: assurance detached from a command you
 just watched execute. Re-run the gate on the exact commit you're about to
 act on.
 
+## Pull Request Body
+
+The body comes from the org template — `codellm-devkit/.github` →
+[`pull_request_template.md`][pr-template]. Opening a PR in the browser applies it automatically.
+
+<HARD-GATE>
+`gh pr create --body` bypasses the template silently. When you use it, reproduce the template's
+sections exactly — same names, same order, none added, none dropped — or pass `--template`.
+A section that does not apply is filled with the reason it does not apply, never deleted.
+</HARD-GATE>
+
+Fill it under the same discipline as an issue (`designing-cldk-changes` →
+`references/issue-and-pr-tracking.md`): evidence over description, every claim carrying its
+receipt, 400 words outside code blocks.
+
+- **Motivation and context** — link the issue (`Closes #NNN`); do not restate it. A body that
+  duplicates its issue at the same length is adding nothing.
+- **How has this been tested?** — the command and its output. "Tested locally" is not an answer;
+  a pasted failing-then-passing run is.
+- **Breaking changes** — name the contract that moved, or write "none" explicitly. Silence reads
+  as not considered.
+- **Checklist** — ticked from fact. An unticked box with a one-line reason beats a ticked box
+  that is not true.
+
+[pr-template]: https://github.com/codellm-devkit/.github/blob/main/.github/pull_request_template.md
+
 ## Ship Decision
 
 Passing gates only tells you the branch is mergeable — it does not tell you
@@ -66,7 +92,7 @@ Never tag off a stale local build; the tag is what the pipeline trusts.
 
 ## Closeout
 
-Docs updates, issue/epic bookkeeping, and following the propagation verdict
+Docs updates, issue bookkeeping, and following the propagation verdict
 through — full etiquette in `references/docs-and-closeout.md`. In brief:
 update the surfaces that describe what changed, close the child issue(s)
 this work resolves (sub-issue progress rolls up on its own), and for every
