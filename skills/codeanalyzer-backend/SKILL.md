@@ -17,11 +17,11 @@ shape. Before you touch code:
 - A **spec and a GitHub tracking record** must exist, produced by `designing-cldk-changes`. They fix
   the language, the target level(s), and every schema decision (which kinds/fields/edges this
   language adds). The tracking record is whatever that skill's decomposition decision chose — an
-  epic with children for cross-repo work, or a single issue for a single-repo change. **If there is
+  parent issue with children for cross-repo work, or a single issue for a single-repo change. **If there is
   no spec + tracked issue, STOP** — do not scaffold, do not "just start," do not settle schema shape
   here. Report that the precondition fails, then checkpoint: `AskUserQuestion` whether to enter
   `designing-cldk-changes` now or stop here; do not invoke it unasked. Do not send work back merely
-  because it is one issue rather than an epic.
+  because it is one issue rather than a parent with children.
 - The spec's **datamodel must have been decided with the user**, not merely written down. A spec is
   the transcript of `designing-cldk-changes`' datamodel loop; a spec nobody walked is a proposal, and
   building against one silently ratifies decisions the user never made. When the spec predates this

@@ -33,7 +33,7 @@ diffs them.
                               │
    too plural for one design  │
               ▼               │
-   planning-cldk-work         │   roadmap doc + ONE epic
+   planning-cldk-work         │   roadmap doc + ONE parent issue
         │ pick one decision   │
         ▼                     ▼
         structural work       │ upkeep work
@@ -80,7 +80,7 @@ other skills.
 decisions it contains, the **collision sweep** that catches candidates sharing schema vocabulary
 (which the parity clause makes permanent once coined), dependency order, release trains, and the
 explicit not-now list. Produces a committed roadmap at `codellm-devkit/.github` →
-`docs/design/roadmap.md`, plus an epic for the one decision actually starting — never one per
+`docs/design/roadmap.md`, plus a parent issue for the one decision actually starting — never one per
 candidate. **Triggers:** the work cannot be stated as a single contract decision, either because a
 theme contains several or because several initiatives compete. **References:**
 `roadmap-template.md`.
@@ -89,7 +89,7 @@ theme contains several or because several initiatives compete. **References:**
 
 **Owns:** contract evolution — a new language, schema v2 evolution/migration, a new analysis
 level, a new SDK facade surface, or any cross-repo structural feature — decided as a spec plus a
-GitHub epic (one child issue per rung) before any implementation rung runs. **Triggers:** the
+GitHub parent issue (one child per rung) before any implementation rung runs. **Triggers:** the
 work is structural, or `maintaining-cldk`'s contract gate escalated a "small fix" here because it
 moved schema v2 output or the public API. **Key references:**
 [`canonical-schema.md`](skills/designing-cldk-changes/references/canonical-schema.md) (the
@@ -97,7 +97,7 @@ keystone every other skill defers to),
 [`schema-design-loop.md`](skills/designing-cldk-changes/references/schema-design-loop.md),
 [`sdk-facade-design-loop.md`](skills/designing-cldk-changes/references/sdk-facade-design-loop.md),
 [`schema-migration.md`](skills/designing-cldk-changes/references/schema-migration.md),
-[`epic-and-issue-templates.md`](skills/designing-cldk-changes/references/epic-and-issue-templates.md).
+[`issue-and-pr-tracking.md`](skills/designing-cldk-changes/references/issue-and-pr-tracking.md).
 
 ### [`maintaining-cldk`](skills/maintaining-cldk/)
 
@@ -139,7 +139,7 @@ today the [Python SDK](https://github.com/codellm-devkit/python-sdk)
 `CLDK(language="<lang>").analysis(...)` kept as a compat shim), the TypeScript SDK the same way,
 other SDKs as they come online — behind the **Iron Rule**: the public API never moves.
 **Triggers:** the analyzer already emits conformant output, and, for any change to the facade
-surface, a spec + epic already decided that surface in `designing-cldk-changes`. **Key
+surface, a spec + tracking record already decided that surface in `designing-cldk-changes`. **Key
 references:** [`schema-contract.md`](skills/cldk-sdk-frontend/references/schema-contract.md) (the
 two-layer model: CPG models vs. the frozen public facade),
 [`python-sdk-wiring.md`](skills/cldk-sdk-frontend/references/python-sdk-wiring.md),
@@ -151,7 +151,7 @@ backend-contract tiers).
 ### [`finishing-cldk-work`](skills/finishing-cldk-work/)
 
 **Owns:** the ladder's exit — every other rung terminates here. Verification gates, a real ship
-decision, release mechanics when warranted, and closeout (docs, issue/epic bookkeeping, filing
+decision, release mechanics when warranted, and closeout (docs, issue bookkeeping, filing
 follow-on issues for anything a propagation verdict listed). **Triggers:** implementation on a
 CLDK branch is complete and the work needs verification, merge, release, documentation updates,
 or issue closeout — before claiming any CLDK work is done. **Key references:**
@@ -200,10 +200,10 @@ Reference analyzers this skillset anchors on:
 Two typical flows through the ladder:
 
 - **"Add Rust support to CLDK"** (new language) — `designing-cldk-changes` produces the spec +
-  epic (target level, schema decisions) → `codeanalyzer-backend` builds and releases
+  parent issue (target level, schema decisions) → `codeanalyzer-backend` builds and releases
   `codeanalyzer-rust` (L1, optionally L2) → `cldk-sdk-frontend` wires `CLDK.rust(project_path=...)`
   into the Python SDK (and TypeScript when ready) → `finishing-cldk-work` runs the gates, decides
-  and cuts the release, and closes out the epic.
+  and cuts the release, and closes out the parent.
 - **"Fix this codeanalyzer-go issue"** (bug fix) — `maintaining-cldk` reproduces the bug, checks
   the contract gate (escalating to `designing-cldk-changes` only if the fix would move schema v2
   output or a public API), fixes it, and runs the propagation sweep across sibling analyzers →

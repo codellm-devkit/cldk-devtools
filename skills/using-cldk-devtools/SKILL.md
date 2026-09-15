@@ -42,7 +42,7 @@ while asking.
                               │
    too plural for one design  │
               ▼               │
-   planning-cldk-work         │   roadmap doc + ONE epic
+   planning-cldk-work         │   roadmap doc + ONE parent issue
         │ pick one decision   │
         ▼                     ▼
         structural work       │ upkeep work

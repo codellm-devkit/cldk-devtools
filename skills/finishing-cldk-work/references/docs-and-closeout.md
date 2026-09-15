@@ -27,19 +27,19 @@ flag, new facade method), at least one of these three needs an update. "No behav
 users" is the only clean exemption, and it should already have been established in the Ship
 Decision step.
 
-## Issue and epic closeout etiquette
+## Issue and parent closeout etiquette
 
 - **Close the child issue(s)** this work resolves, with a comment naming the merge commit / release
   tag that resolved it — not a bare "done."
-- **Nothing to tick.** Epics track children as **native GitHub sub-issues**, so closing a child
-  advances the epic's progress automatically. Do not hand-maintain a `CHILDREN` checklist and do
-  not add `Part of #N` trailers — if you find an epic still carrying either, convert it to
+- **Nothing to tick.** Parent issues track children as **native GitHub sub-issues**, so closing a
+  child advances the parent's progress automatically. Do not hand-maintain a `CHILDREN` checklist
+  and do not add `Part of #N` trailers — if you find a parent still carrying either, convert it to
   sub-issues rather than updating it by hand (see
-  `skills/designing-cldk-changes/references/epic-and-issue-templates.md`).
-- **Don't close the epic itself** until every sub-issue is closed and its own Definition of Done
+  `skills/designing-cldk-changes/references/issue-and-pr-tracking.md`).
+- **Don't close the parent itself** until every sub-issue is closed and its own definition of done
   (gates green across every affected repo, versions pinned in lockstep, docs updated) is genuinely
   satisfied — not just the child you personally worked.
-- For work with no epic (most `maintaining-cldk` entries — a bug fix or small feature stands alone),
+- For work with no parent (most `maintaining-cldk` entries — a bug fix or small feature stands alone),
   closing its single issue with the resolving commit/release reference is the whole of closeout on
   this axis.
 
@@ -69,7 +69,7 @@ Reading that verdict here is not optional, and neither is acting on it:
   mechanics followed `references/packaging-and-release.md` including version lockstep.
 - [ ] Docs surfaces checked against the actual change — README, agent guides, docs site — updated or
   explicitly ruled not-needed.
-- [ ] Child issue(s) closed with a reference to the resolving commit/tag; epic checklist ticked if
+- [ ] Child issue(s) closed with a reference to the resolving commit/tag; parent rollup current if
   one exists.
 - [ ] Propagation verdict re-read; every listed follow-on repo has a filed issue, or the verdict was
   `none` with visible reasoning.

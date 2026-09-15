@@ -4,7 +4,7 @@ This is the **SDK-side** design loop of `designing-cldk-changes` — invoked whe
 Contract-Impact Triage says a change touches the SDK facade *surface* (a new language's facade, a
 new query, a changed accessor). It designs the surface; it does **not** implement it. Creating the
 facade files, the dispatch branch, the version pins, and the tests is the **encoding** step, and
-it belongs to the `cldk-sdk-frontend` rung — entered only after the spec + epic gate is satisfied
+it belongs to the `cldk-sdk-frontend` rung — entered only after the spec + tracking gate is satisfied
 (mechanics: `skills/cldk-sdk-frontend/references/python-sdk-wiring.md` and
 `skills/cldk-sdk-frontend/references/typescript-sdk-wiring.md`).
 
@@ -139,5 +139,5 @@ mistaking *Java's* surface for *the* surface, especially for a procedural target
 ## Output of this loop
 A complete, user-approved facade vocabulary for the language — the method list, names, and
 constructor contract — with every divergence decided and noted in `CLAUDE.md` under Facade decisions.
-This is a *design artifact*: it feeds the spec and the epic's SDK-facade child issue. No facade
+This is a *design artifact*: it feeds the spec and the parent's SDK-facade child issue. No facade
 files are written yet — that is the `cldk-sdk-frontend` rung, entered only after the gate.

@@ -4,7 +4,34 @@ All notable changes to the CLDK DevTools plugin are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.6.0] — 2026-09-14
+
+### ⚠️ Changed — breaking
+
+The `work_item` and `epic` issue forms are retired. `codellm-devkit/.github` now ships
+`bug_report.md` and `feature_request.md` only, with `blank_issues_enabled: false` so one of
+the two is always used (`codellm-devkit/.github#87`).
+
+- **`designing-cldk-changes`** → `references/epic-and-issue-templates.md` is renamed
+  `references/issue-and-pr-tracking.md` and rewritten against the two surviving forms. The
+  three tracking shapes survive with the epic renamed to a **parent issue** — an ordinary
+  `feature_request` that happens to have children. Native cross-repo sub-issues are unchanged;
+  they are a GitHub mechanism, not a template feature.
+
+- **The discipline the retired forms enforced is placed, not dropped.** A new table maps each
+  retired section to where it now lives: scope boundary → *Describe alternatives you've
+  considered*; caveats and known risks → *Additional context*; definition of done → the
+  checkboxes under *Describe the solution you'd like*, or *Expected behavior* on a bug. The
+  per-section word budget is re-cut against the legacy section names.
+
+- **Titles are plain sentences, types are labels.** A new **Titles and labels** section bans
+  `type(scope):` prefixes on issues, pull requests and commit subjects — the prefix duplicates
+  what a label encodes and eats the first twenty characters of every row a reader scans.
+  Identifiers in a title go in backticks. `gh issue create` carries `--label` instead.
+
+- **`planning-cldk-work`, `maintaining-cldk`, `finishing-cldk-work`, `codeanalyzer-backend`,
+  `cldk-sdk-frontend`, `using-cldk-devtools`** and the schema/facade design-loop references
+  follow the same rename. No ladder rung, gate or routing rule changed.
 
 ### Changed
 

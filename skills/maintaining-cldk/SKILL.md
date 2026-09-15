@@ -13,7 +13,7 @@ structural. Most work enters here.
 ## Entry Preconditions
 
 An issue, bug report, small feature request, or docs gap already exists. No
-spec and no epic are needed to start — that is the point of this mode. If
+spec and no parent issue are needed to start — that is the point of this mode. If
 what you're holding turns out to need a design decision spanning repos, the
 contract gate below routes you out.
 
@@ -52,7 +52,7 @@ override local repo discipline, it sits on top of it.
 **Everything you file goes on an org form** — the bug report, the feature
 request, and the PR that closes them. Not a hand-rolled body covering the same
 ground. The forms and the rules for filling them are in
-`designing-cldk-changes` → `references/epic-and-issue-templates.md` § The
+`designing-cldk-changes` → `references/issue-and-pr-tracking.md` § The
 forms; the PR body specifically is in `finishing-cldk-work` § Pull Request
 Body. `gh issue create --body` and `gh pr create --body` bypass the form
 silently — reproduce its sections exactly, or pass `--template`.

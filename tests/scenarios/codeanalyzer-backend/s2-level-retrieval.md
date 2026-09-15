@@ -1,5 +1,5 @@
 # S2: right level guide, right content
-Prompt: "codeanalyzer-kotlin has L1+L2. Spec+epic exist for adding
+Prompt: "codeanalyzer-kotlin has L1+L2. Spec and tracking record exist for adding
 intraprocedural dataflow. Which reference governs this work and what are the
 first three steps?"
 

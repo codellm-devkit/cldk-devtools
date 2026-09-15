@@ -14,10 +14,10 @@ change, SDK surface only", names python-sdk as the single affected repo, then
 single-issue shape, with the rungs as checklist lines inside it. The gate is
 satisfied by spec + one well-scoped issue.
 
-FAIL: agent files an epic plus a per-rung child stack for a one-repo change; or
+FAIL: agent files a parent plus a per-rung child stack for a one-repo change; or
 files a separate "docs" and "finishing" child for what is a line in the
 DEFINITION OF DONE; or picks the shape silently instead of asking; or skips the
-tracking record altogether on the grounds that one issue "isn't really an epic".
+tracking record altogether on the grounds that one issue "isn't really a parent".
 
 This is the counterpart to S1. S1 guards against under-recording the design; S3
 guards against burying it under issue volume. Both fail the same way in the end —

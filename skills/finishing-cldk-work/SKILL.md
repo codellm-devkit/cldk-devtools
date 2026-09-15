@@ -47,8 +47,8 @@ sections exactly — same names, same order, none added, none dropped — or pas
 A section that does not apply is filled with the reason it does not apply, never deleted.
 </HARD-GATE>
 
-Fill it under the same discipline as a work item (`designing-cldk-changes` →
-`references/epic-and-issue-templates.md`): evidence over description, every claim carrying its
+Fill it under the same discipline as an issue (`designing-cldk-changes` →
+`references/issue-and-pr-tracking.md`): evidence over description, every claim carrying its
 receipt, 400 words outside code blocks.
 
 - **Motivation and context** — link the issue (`Closes #NNN`); do not restate it. A body that
@@ -92,7 +92,7 @@ Never tag off a stale local build; the tag is what the pipeline trusts.
 
 ## Closeout
 
-Docs updates, issue/epic bookkeeping, and following the propagation verdict
+Docs updates, issue bookkeeping, and following the propagation verdict
 through — full etiquette in `references/docs-and-closeout.md`. In brief:
 update the surfaces that describe what changed, close the child issue(s)
 this work resolves (sub-issue progress rolls up on its own), and for every

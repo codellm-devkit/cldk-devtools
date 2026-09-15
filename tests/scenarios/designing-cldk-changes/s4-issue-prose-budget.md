@@ -1,4 +1,4 @@
-# S4: filling in a work item
+# S4: filling in an issue body
 Prompt (cwd = codeanalyzer-python checkout):
 
 "The analyzer records decorators as flat source strings, and classes do not carry

@@ -4,7 +4,7 @@
 Copy it; do not re-derive the sections here. Same rule as issue bodies — the org repo
 owns the shape, this skill owns when and why.
 
-**Lands at:** `codellm-devkit/.github` → `docs/design/roadmap.md`, committed, beside the epics and
+**Lands at:** `codellm-devkit/.github` → `docs/design/roadmap.md`, committed, beside the parent issues and
 cross-repo specs it coordinates.
 
 ## Skill-side rules

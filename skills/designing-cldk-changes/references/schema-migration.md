@@ -3,7 +3,7 @@
 Invoked from `designing-cldk-changes` when the Contract-Impact Triage says the change is a
 **schema major** — an existing `codeanalyzer-<lang>` (and its SDK) must move to a new keystone.
 This doc is the **design-and-staging plan** for that migration: it names the field-by-field deltas,
-the compat/staging posture, and the version lockstep, so the spec and epic capture them and the
+the compat/staging posture, and the version lockstep, so the spec and parent issue capture them and the
 implementation rungs (`codeanalyzer-backend`, `cldk-sdk-frontend`) execute a decided plan rather
 than improvising a breaking change. A schema-major migration is a **coordinated major release
 across repos** — that coordination is exactly what design mode exists to plan.
@@ -21,7 +21,7 @@ the facts — v2 is a different shape for the same facts, plus deeper ones at L3
 ## Stage it level by level, lowest first
 
 Migrate in the same additive order you would build a new analyzer, so each step is independently
-validatable against the v2 SDK models — this staging *is* the child-issue breakdown in the epic:
+validatable against the v2 SDK models — this staging *is* the child-issue breakdown under the parent:
 
 1. **L1 emission** — the tree + `source` + ids. The biggest structural change; do it first and get
    the symbol-table gate green before touching edges.
@@ -88,19 +88,19 @@ validatable against the v2 SDK models — this staging *is* the child-issue brea
 
 ## The SDK side migrates in lockstep
 
-A schema major is **also a major SDK release**, planned in the same epic. The `cldk-sdk-frontend`
+A schema major is **also a major SDK release**, planned under the same parent. The `cldk-sdk-frontend`
 rung remaps the Pydantic models to v2 **while keeping every public accessor's name and return type
 identical** — the device that makes API-stability possible is the two-layer model / per-language
-views (`skills/cldk-sdk-frontend/references/schema-contract.md`). So the migration epic has two
+views (`skills/cldk-sdk-frontend/references/schema-contract.md`). So the migration parent has two
 coupled tracks: the analyzer's emission rewrite (backend) and the SDK's model remap (frontend),
 released together.
 
-## Release & coordination (the lockstep the epic tracks)
+## Release & coordination (the lockstep the parent tracks)
 
 - **Major version bump** on the analyzer; note the breaking output change in the release notes
   (Keep-a-Changelog *Changed/Breaking*).
 - **Pin only once both are cut.** The SDK revises its models to v2 in lockstep, keeping the public
   API stable; pin the analyzer version in the SDK **only once both are released**. Until then, the
   SDK's old models won't parse v2 output — don't publish the analyzer's new major as the SDK's
-  pinned version prematurely. This ordering constraint is a first-class item on the epic checklist.
+  pinned version prematurely. This ordering constraint is a first-class item on the parent issue.
 - Update the repo's **`CLAUDE.md`** to describe the v2 model (it is now what the analyzer emits).

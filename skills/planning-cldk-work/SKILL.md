@@ -90,9 +90,9 @@ list is a wishlist; the exclusions are what make the inclusions mean something.
 
 Write the roadmap to **`codellm-devkit/.github` → `docs/design/roadmap.md`**, per
 `references/roadmap-template.md`. It is committed and reviewable, alongside the
-epics and cross-repo specs it coordinates.
+parent issues and cross-repo specs it coordinates.
 
-Then file an epic for **the single feature actually starting now** — and nothing
+Then file a parent issue for **the single feature actually starting now** — and nothing
 else. The roadmap records the rest; the tracker does not need to mirror it.
 
 ## <HARD-GATE>
@@ -127,7 +127,7 @@ happen in a later session without losing anything.
 
 | Rationalization | Reality |
 | --- | --- |
-| "File all six epics so the board shows the quarter." | Six idle epics is inventory, and inventory rots. File the one you are starting; the roadmap records the rest. |
+| "File all six parent issues so the board shows the quarter." | Six idle parents is inventory, and inventory rots. File the one you are starting; the roadmap records the rest. |
 | "These are separate features, design them separately." | Run the collision sweep first. Shared vocabulary decided twice is decided wrong, permanently. |
 | "Put the roadmap in a tracking issue so it's visible." | Docs carry content, trackers carry state. The roadmap is a committed doc; the Project board is the live view. |
 | "'Microservice analysis' is one row on the roadmap." | It is a theme, not a decision. Undecomposed, the sweep runs clean and finds nothing — the gate passes and the collision ships anyway. |
